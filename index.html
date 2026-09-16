@@ -9,14 +9,15 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f1b2d">
-<!-- Política de seguretat de contingut: l'app només llegeix dades.json del mateix servidor.
+<!-- Política de seguretat de contingut: l'app llegeix dades.json del mateix servidor i, a la pestanya
+     d'immigració, l'última dada de cada municipi de l'Idescat.
      Tota la interactivitat va amb onclick en línia, per això cal 'unsafe-inline' als scripts. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
-  connect-src 'self';
+  connect-src 'self' https://api.idescat.cat;
   font-src 'self';
   manifest-src 'self';
   worker-src 'self';
@@ -197,6 +198,7 @@ select, input[type=number] {
 .bar .fill { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; }
 .bar .axis0 { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
 .bar .val { text-align: right; font-variant-numeric: tabular-nums; }
+.bar.pair { grid-template-columns: minmax(100px, 150px) 1fr 58px; }
 .bar.pair .dbl { display: grid; gap: 3px; }
 .bar.pair .track { height: 11px; }
 .bar.pair .val { display: grid; line-height: 1.15; font-size: .8rem; }
@@ -247,6 +249,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <button data-v="creixement" onclick="go('creixement')">🏭 Creixement</button>
       <button data-v="pais" onclick="go('pais')">📍 Fitxa de país</button>
       <button data-v="altra" onclick="go('altra')">🔍 L'altra cara</button>
+      <button data-v="immigracio" onclick="go('immigracio')">🧳 Immigració</button>
       <button data-v="comparar" onclick="go('comparar')">📊 Comparar</button>
       <button data-v="aprendre" onclick="go('aprendre')">📘 Com funciona</button>
     </nav>
@@ -274,6 +277,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
   <section class="view" id="v-comparar"></section>
   <!-- ── L'altra cara ── -->
   <section class="view" id="v-altra"></section>
+  <!-- ── Immigració ── -->
+  <section class="view" id="v-immigracio"></section>
   <!-- ── Aprendre ── -->
   <section class="view" id="v-aprendre"></section>
 </main>
@@ -289,7 +294,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -511,7 +516,7 @@ function flushCharts() { for (const [id, fn] of pending) { const el = document.g
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
 const VIEWS = { inici: renderInici, inflacio: renderInflacio, sous: renderSous, deute: renderDeute, tipus: renderTipus,
-  creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, aprendre: renderAprendre };
+  creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, immigracio: renderImmigracio, aprendre: renderAprendre };
 function go(v) {
   if (!VIEWS[v]) v = 'inici';
   view = v;
@@ -1167,6 +1172,238 @@ function renderAltra() {
     </div>
     <p class="muted" style="margin-top:10px">Hi ha índexs alternatius que diuen que la inflació real és molt més alta, però la majoria no expliquen bé com es calculen.
     Aquí només fem servir dades oficials, i n'ensenyem la part que no surt als titulars.</p>
+  </div>`;
+}
+
+/* ── 🧳 Immigració ──────────────────────────────────────────────────────────── */
+// Tema delicat: dades oficials, beneficis i costos junts, i sempre dient d'on surt cada xifra.
+const IM_DEFAULT = ['ESP', 'DEU', 'FRA', 'ITA', 'EU'];
+let imSel = lsGet('economia_imsel', IM_DEFAULT);
+let imCol = fixColors(imSel, lsGet('economia_imsel_c', {}));
+let imPais = lsGet('economia_impais', 'ESP');
+let imMun = lsGet('economia_immun', '080193');
+let munLive = {};    // id → {any, pob, estr, cat: [estr, pob]} (última dada, en directe)
+let munGen = 0;
+const IE = () => D.immi?.eu || {};
+const imNom = c => c === 'EU' ? '🇪🇺 Unió Europea' : label(c);
+const imShort = c => c === 'EU' ? 'UE' : ent(c)?.nom || c;
+const imVal = (c, k, a) => IE()[c]?.[k]?.[a];
+const imLast = (c, k) => { const s = IE()[c]?.[k]; if (!s) return null; const a = Math.max(...Object.keys(s).map(Number)); return [a, s[a]]; };
+const pctFora = (c, a) => { const f = imVal(c, 'nascutsFora', a), p = imVal(c, 'pob', a); return f && p ? f / p * 100 : null; };
+const serieFora = c => Object.keys(IE()[c]?.nascutsFora || {}).map(Number).map(a => [a, pctFora(c, a)]).filter(p => p[1] != null);
+
+function toggleIm(c) {
+  if (imSel.includes(c)) { if (imSel.length > 1) imSel = imSel.filter(x => x !== c); }
+  else { if (imSel.length >= MAX_SEL) return alert(`Com a màxim ${MAX_SEL} alhora.`); imSel = [...imSel, c]; }
+  fixColors(imSel, imCol); lsSet('economia_imsel', imSel); lsSet('economia_imsel_c', imCol); renderView();
+}
+
+// Última dada d'un municipi, en directe de l'Idescat (el padró de dades.json acaba el 2022)
+async function loadMun(id) {
+  if (munLive[id] || !/^\d{6}$/.test(id)) return;
+  const gen = ++munGen;
+  try {
+    const r = await fetch(`https://api.idescat.cat/emex/v1/dades.json?id=${id}&i=f171,f73&lang=ca`, { signal: AbortSignal.timeout(10000) });
+    const j = await r.json();
+    const ind = [j.fitxes?.indicadors?.i].flat().filter(Boolean);
+    const get = k => (ind.find(x => x.id === k)?.v || '').split(',').map(x => x === '_' ? null : +x);
+    const pob = get('f171'), estr = get('f73');
+    if (gen !== munGen || !pob[0]) return;
+    munLive[id] = { any: +ind[0].r, pob: pob[0], estr: estr[0], cat: [estr[2], pob[2]] };
+    if (view === 'immigracio') renderView();
+  } catch { /* sense connexió: es mostra només el padró fins al 2022 */ }
+}
+function setMun(txt) {
+  const C = D.immi?.cat; if (!C) return;
+  const t = txt.trim().toLowerCase();
+  const id = Object.keys(C.mun).find(k => C.mun[k][0].toLowerCase() === t);
+  if (!id) return;
+  imMun = id; lsSet('economia_immun', id); renderView(); loadMun(id);
+}
+
+function renderImmigracio() {
+  const I = D.immi || {};
+  if (!I.eu && !I.cat) return '<p class="muted">Aquestes dades encara no s\'han baixat.</p>';
+  const E = IE();
+  const paisos = Object.keys(E).filter(c => c !== 'EU');
+  const p = E[imPais] ? imPais : 'ESP';
+  const [aF, fora] = imLast(p, 'nascutsFora') || [];
+  const [aM, mig] = imLast(p, 'migNeta') || [];
+  const [aO, ordres] = imLast(p, 'ordres') || [];
+  const ret = imVal(p, 'retorns', aO);
+  const [aI, irreg] = imLast(p, 'irregulars') || [];
+  const pctRet = (c, a) => { const o = imVal(c, 'ordres', a), r = imVal(c, 'retorns', a); return o && r != null ? r / o * 100 : null; };
+  const lastOrd = c => imLast(c, 'ordres')?.[0];
+
+  // permisos de residència del darrer any
+  const [aP] = imLast(p, 'permisFeina') || [];
+  const permisos = [['permisFeina', '💼 Per feina'], ['permisFamilia', '👪 Per reagrupament familiar'], ['permisEstudis', '🎓 Per estudis'], ['permisAltres', '📄 Altres motius']]
+    .map(([k, n], i) => ({ name: n, v: imVal(p, k, aP), color: `var(--s${i + 1})` }));
+  const asil = imLast(p, 'asil');
+
+  // feina i pobresa
+  const par = (kA, kB) => [...paisos, 'EU'].map(c => { const a = imLast(c, kA), b = imLast(c, kB); return { c, name: imNom(c), a: a?.[1], b: b?.[1] }; })
+    .filter(r => r.a != null && r.b != null).sort((x, y) => (y.a - y.b) - (x.a - x.b));
+
+  // remeses enviades en % del PIB
+  const M = I.mon || {};
+  const rem = countries().map(c => { const s = M[c]?.remesesEnviades; if (!s) return null; const a = Math.max(...Object.keys(s).map(Number)); const pib = val(c, 'pib', a); return pib ? { c, name: label(c), v: s[a] / (pib * 1000) * 100, a } : null; })
+    .filter(Boolean).sort((x, y) => y.v - x.v);
+  const estoc = countries().map(c => { const s = M[c]?.estoc; if (!s) return null; const a = Math.max(...Object.keys(s).map(Number)); return { c, name: label(c), v: s[a], a }; })
+    .filter(Boolean).sort((x, y) => y.v - x.v);
+
+  // Catalunya
+  const C = I.cat;
+  let cat = '';
+  if (C) {
+    const m = C.mun[imMun] ? imMun : '080193';
+    const [nom, comId] = C.mun[m];
+    const dm = C.dades.mun[m] || {}, dc = C.dades.com[comId] || {};
+    const catTot = a => Object.values(C.dades.com).reduce((s, x) => [s[0] + (x[a]?.[0] || 0), s[1] + (x[a]?.[1] || 0)], [0, 0]);
+    const pc = x => x && x[1] ? x[0] / x[1] * 100 : null;
+    const ser = d => C.anys.map(a => [a, pc(d[a])]).filter(x => x[1] != null);
+    const live = munLive[m];
+    const ultA = C.anys.at(-1);
+    const serM = ser(dm), serC = ser(dc), serT = C.anys.map(a => [a, pc(catTot(a))]);
+    if (live) { serM.push([live.any, live.estr / live.pob * 100]); serT.push([live.any, live.cat[0] / live.cat[1] * 100]); }
+    const coms = Object.keys(C.dades.com).map(id => ({ c: id, name: C.com[id], v: pc(C.dades.com[id][ultA]) })).sort((a, b) => b.v - a.v);
+    const pobles = Object.keys(C.dades.mun).filter(id => (C.dades.mun[id][ultA]?.[1] || 0) >= 2000)
+      .map(id => ({ c: id, name: C.mun[id]?.[0] || id, v: pc(C.dades.mun[id][ultA]) })).sort((a, b) => b.v - a.v);
+    const creix = pc(dm[ultA]) != null && pc(dm[2000]) != null ? pc(dm[ultA]) - pc(dm[2000]) : null;
+    if (!live) setTimeout(() => loadMun(m), 0);
+    cat = `
+  <div class="card">
+    <h3>🏘️ 6. I al teu poble?</h3>
+    <p class="sub">Població nascuda a l'estranger a qualsevol municipi de Catalunya, comparada amb la comarca i amb tot Catalunya.</p>
+    <div class="controls">
+      <input list="munlist" placeholder="Escriu el nom del poble…" value="${esc(nom)}" onchange="setMun(this.value)" aria-label="Municipi" style="min-width:240px;background:var(--card-2);border:1px solid var(--border);border-radius:10px;padding:6px 10px">
+      <datalist id="munlist">${Object.values(C.mun).map(x => `<option value="${esc(x[0])}">`).join('')}</datalist>
+    </div>
+    <div class="tiles">
+      ${tile(`👥 ${esc(nom)}`, live ? int(live.pob) : int(dm[ultA]?.[1]), `habitants (${live ? live.any : ultA})`)}
+      ${live ? tile(`🌍 Nascuts a fora (${live.any})`, pct(live.estr / live.pob * 100), `${int(live.estr)} persones · Catalunya: ${pct(live.cat[0] / live.cat[1] * 100)}`) : ''}
+      ${tile(`${esc(nom)} el ${ultA}`, pct(pc(dm[ultA])), `${int(dm[ultA]?.[0])} nascuts a fora`)}
+      ${tile(`${esc(C.com[comId])} el ${ultA}`, pct(pc(dc[ultA])), 'tota la comarca')}
+      ${tile(`Catalunya el ${ultA}`, pct(pc(catTot(ultA))), 'tot el país')}
+    </div>
+    ${creix != null ? `<p class="sub">Del 2000 al ${ultA}, a ${esc(nom)} el percentatge ha passat del ${pct(pc(dm[2000]))} al ${pct(pc(dm[ultA]))} (${sgn(creix)} punts).</p>` : ''}
+    ${chart('c-im-mun', el => lineChart(el, { title: 'Població nascuda a l\'estranger', fmt: v => pct(v), tick: v => v + ' %',
+      series: [{ name: nom, color: 'var(--s2)', pts: serM }, { name: C.com[comId], color: 'var(--s1)', pts: serC }, { name: 'Catalunya', color: 'var(--s3)', pts: serT }] }))}
+    <p class="muted">Padró municipal fins al ${ultA} (Idescat)${live ? `; la dada del ${live.any} surt del cens anual de l'INE via Idescat, que es calcula d'una manera una mica diferent` : ''}.</p>
+    <div class="grid g2" style="margin-top:14px">
+      <div><h3>Comarques (${ultA})</h3>${barsHTML(coms, { fmt: v => pct(v, 0), me: comId })}</div>
+      <div><h3>Municipis de més de 2.000 habitants amb més percentatge (${ultA})</h3>${barsHTML(pobles.slice(0, 20), { fmt: v => pct(v, 0), me: m })}
+        <p class="muted">Quan la proporció puja molt en pocs anys, la pressió sobre l'habitatge, les escoles i els serveis és més gran, i la integració costa més.</p></div>
+    </div>
+  </div>`;
+  }
+
+  return `
+  <div class="intro">
+    <h2>🧳 Immigració: com afecta l'economia i els pobles</h2>
+    <p class="sub">És un dels temes que més preocupa i on més opinions es barregen amb les dades. La immigració té <b>efectes positius i negatius</b>,
+    i com pesen uns i altres depèn sobretot de <b>quanta arriba, com arriba i com s'integra</b>. Aquí només hi ha dades oficials (Eurostat, Banc Mundial, Idescat).</p>
+    <div class="controls">País:
+      <select onchange="imPais=this.value;lsSet('economia_impais',imPais);renderView()" aria-label="País">${[...paisos, 'EU'].map(c => `<option value="${c}" ${c === p ? 'selected' : ''}>${esc(imNom(c))}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="tiles">
+    ${fora != null ? tile('🌍 Nascuts a fora', pct(pctFora(p, aF)), `${nf(fora / 1e6, 1)} milions de persones (${aF})`) : ''}
+    ${mig != null ? tile('➕ Migració neta', sgn(mig) + ' ‰', `per cada 1.000 habitants (${aM})`) : ''}
+    ${irreg != null ? tile('🚫 En situació irregular detectats', int(irreg), `persones de fora de la UE (${aI})`) : ''}
+    ${ordres ? tile('↩️ Expulsions que es fan efectives', pct(ret / ordres * 100, 0), `${int(ret)} retorns de ${int(ordres)} ordres (${aO})`,
+      ret / ordres < 0.3 ? '<span class="badge bad">▼ molt poques</span>' : '<span class="badge warn">▲ poques</span>') : ''}
+  </div>
+
+  <div class="card">
+    <h3>🌍 1. Quanta immigració hi ha?</h3>
+    <p class="sub">Percentatge de la població nascuda en un altre país (inclou els nascuts en altres països de la UE i els que ja tenen la nacionalitat).</p>
+    <div class="chips" style="margin-bottom:12px">${[...paisos, 'EU'].map(c => `<button class="chip ${imSel.includes(c) ? 'on' : ''}" onclick="toggleIm('${c}')" ${imSel.includes(c) ? `style="color:${col(c, imCol)}"` : ''}>
+      ${imSel.includes(c) ? `<span class="dot" style="background:${col(c, imCol)}"></span>` : ''}<span style="color:var(--text)">${esc(imNom(c))}</span></button>`).join('')}</div>
+    ${chart('c-im-fora', el => lineChart(el, { title: 'Població nascuda a fora', fmt: v => pct(v), tick: v => v + ' %',
+      series: imSel.filter(c => E[c]).map(c => ({ name: imNom(c), short: imShort(c), color: col(c, imCol), pts: serieFora(c) })) }))}
+    <div class="grid g2" style="margin-top:14px">
+      <div><h3>Europa (${aF})</h3>${barsHTML([...paisos, 'EU'].map(c => ({ c, name: imNom(c), v: pctFora(c, imLast(c, 'nascutsFora')?.[0]) })).sort((a, b) => b.v - a.v), { fmt: v => pct(v, 0), me: p })}</div>
+      <div><h3>Món (Banc Mundial, ${estoc[0]?.a || ''})</h3>${barsHTML(estoc, { fmt: v => pct(v, 0), me: p })}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🛂 2. Com arriben? (${esc(imNom(p))})</h3>
+    <p class="sub">Primers permisos de residència donats a persones de fora de la UE el ${aP || '–'}, segons el motiu. Els europeus no en necessiten.</p>
+    ${barsHTML(permisos, { fmt: v => int(v) })}
+    ${asil ? `<p class="sub" style="margin-top:10px">A més, el ${asil[0]} hi va haver <b>${int(asil[1])}</b> noves sol·licituds d'asil. Moltes són denegades, però el procés pot durar anys.</p>` : ''}
+  </div>
+
+  <div class="card">
+    <h3>🚧 3. Immigració irregular i control</h3>
+    <p class="sub">Persones de fora de la UE detectades en situació irregular, ordres de sortida que s'han dictat i retorns que s'han fet de veritat.
+    La diferència entre les dues últimes línies és la gent que, tot i tenir una ordre d'expulsió, es queda.</p>
+    ${chart('c-im-irr', el => lineChart(el, { title: 'Irregulars, ordres i retorns', fmt: v => int(v), tick: v => v >= 1000 ? nf(v / 1000, 0) + ' mil' : v,
+      series: [['irregulars', 'Detectats en situació irregular', 'var(--s2)'], ['ordres', 'Ordres de sortida', 'var(--s4)'], ['retorns', 'Retorns efectius', 'var(--s1)']]
+        .map(([k, n, color]) => ({ name: n, color, pts: Object.entries(E[p]?.[k] || {}).map(([a, v]) => [+a, v]) })) }))}
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <h3>Quantes expulsions es fan efectives?</h3>
+        <p class="sub">Retorns dividits per ordres de sortida, últim any.</p>
+        ${barsHTML([...paisos, 'EU'].map(c => ({ c, name: imNom(c), v: pctRet(c, lastOrd(c)) })).filter(r => r.v != null).sort((a, b) => a.v - b.v), { fmt: v => pct(v, 0), me: p })}
+      </div>
+      <div class="callout">
+        <b>Què vol dir això?</b>
+        <p class="sub">Quan la majoria de les ordres d'expulsió no es compleixen, el sistema perd credibilitat i hi ha més gent que viu i treballa sense papers,
+        sovint a l'<b>economia submergida</b>: sense cotitzar, amb sous baixos i més risc d'abusos. Això també pressiona a la baixa els sous d'alguns sectors.</p>
+        <p class="sub">Els retorns són difícils perquè molts països d'origen no accepten els seus ciutadans o no hi ha acords per fer-ho.</p>
+        <p class="muted">Font: Eurostat. Les detencions no són persones úniques: una mateixa persona es pot comptar més d'un cop.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💼 4. Feina i pobresa</h3>
+    <p class="sub">Persones de 20 a 64 anys nascudes <b>fora de la UE</b> comparades amb les nascudes al mateix país. Últim any disponible.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))">
+      <div><h3>Taxa d'ocupació</h3><p class="sub">% que treballa.</p>${pairBarsHTML(par('ocupNoUE', 'ocupNat'), { la: 'Nascuts fora de la UE', lb: 'Nascuts al país', fmt: v => pct(v, 0), me: p })}</div>
+      <div><h3>Atur</h3><p class="sub">% que busca feina i no en troba.</p>${pairBarsHTML(par('aturNoUE', 'aturNat'), { la: 'Nascuts fora de la UE', lb: 'Nascuts al país', fmt: v => pct(v, 0), me: p })}</div>
+      <div><h3>Risc de pobresa</h3><p class="sub">% amb ingressos per sota del 60 % de la mitjana (18-64 anys).</p>${pairBarsHTML(par('pobresaNoUE', 'pobresaNat'), { la: 'Nascuts fora de la UE', lb: 'Nascuts al país', fmt: v => pct(v, 0), me: p })}</div>
+    </div>
+    <p class="sub" style="margin-top:10px">A Espanya la majoria dels immigrants treballen, però amb <b>més atur, sous més baixos i molta més pobresa</b>. Això vol dir més ajudes socials,
+    però també que sovint fan les feines que costa cobrir (camp, cures, hostaleria, construcció).</p>
+  </div>
+
+  <div class="card">
+    <h3>💸 5. Diners que s'envien als països d'origen</h3>
+    <p class="sub">Remeses que els immigrants envien a les seves famílies, en % del PIB del país on viuen. Són diners guanyats aquí que es gasten fora.</p>
+    ${barsHTML(rem, { fmt: v => pct(v, 2), me: p })}
+    <p class="muted">Font: Banc Mundial i FMI. Els països amb molta immigració temporal (com l'Aràbia Saudita) n'envien molt més.</p>
+  </div>
+
+  ${cat}
+
+  <div class="card">
+    <h3>⚖️ 7. Què aporta i què costa</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div>
+        <b>✅ El que hi aporta</b>
+        <p class="sub">• <b>Mà d'obra</b> en feines on falta gent: camp, cures de gent gran, hostaleria, construcció, transport.</p>
+        <p class="sub">• <b>Cotitzacions</b>: amb una població que envelleix, els treballadors joves ajuden a pagar les pensions.</p>
+        <p class="sub">• <b>Pobles que no es buiden</b>: en molts municipis petits, les famílies immigrants mantenen obertes escoles i comerços.</p>
+        <p class="sub">• <b>Creixement</b>: més treballadors fan créixer el PIB total, i també els ingressos de l'estat.</p>
+      </div>
+      <div>
+        <b>⚠️ Els riscos i costos</b>
+        <p class="sub">• <b>Més població fa pujar la demanda d'habitatge</b>, i si no se'n construeix prou, pugen preus i lloguers.</p>
+        <p class="sub">• <b>Serveis públics</b> (sanitat, escoles, ajudes) sota pressió si la població creix més de pressa que els recursos.</p>
+        <p class="sub">• <b>Sous baixos</b>: molta mà d'obra poc qualificada pot frenar els sous i la productivitat; el PIB total creix, però el <b>PIB per habitant</b> no tant.</p>
+        <p class="sub">• <b>Integració</b>: quan arriba molta gent en poc temps i es concentra en uns barris o pobles, costa més aprendre la llengua (també el català) i conviure.</p>
+        <p class="sub">• <b>Irregularitat</b>: sense control ni retorns, creix l'economia submergida i es perd confiança en el sistema.</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>El que diuen la majoria d'estudis</b>
+      <p class="sub">L'efecte econòmic depèn sobretot de <b>la feina i la formació</b> de qui arriba i de <b>com s'integra</b>. La immigració regular que troba feina
+      sol sumar a les arques públiques; la irregular o la que no s'integra al mercat laboral sol costar més del que aporta. Per això els països que gestionen millor
+      la immigració combinen control de fronteres i retorns efectius amb vies legals per venir a treballar, formació i aprenentatge de la llengua.</p>
+    </div>
   </div>`;
 }
 

@@ -21,12 +21,16 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ BIS SDMX         → tipus[codi BIS]["AAAA-MM"]
   ├─ BIS SDMX         → altra.habitatge[ISO3], altra.balanc[codi BIS]   (pestanya "L'altra cara")
   ├─ BCE              → altra.diners {m3, pib, preus}
-  └─ FMI IRFCL        → altra.or[ISO3][any] en tones (+ altra.orNoms per als països extra)
+  ├─ FMI IRFCL        → altra.or[ISO3][any] en tones (+ altra.orNoms per als països extra)
+  ├─ Eurostat         → immi.eu[ISO3|EU][clau][any]   (pestanya "Immigració"; Grècia és EL a Eurostat)
+  ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
+  └─ Idescat (taules) → immi.cat {mun, com, anys, dades}: padró per lloc de naixement 2000-2022
         ↓
      dades.json  ──→  index.html: init() → D → go(vista) → renderXxx() → flushCharts()
 ```
 
-- L'app **només** fa `fetch('dades.json')`. La CSP té `connect-src 'self'`. L'FMI no permet
+- L'app fa `fetch('dades.json')` i, a Immigració, `loadMun()` demana en directe l'última dada del municipi a
+  l'EMEX de l'Idescat (CORS obert). La CSP té `connect-src 'self' https://api.idescat.cat`. L'FMI no permet
   CORS, per això les dades es preparen al servidor i no al navegador.
 - `Y` = any de `D.generat`. Els anys `>= Y` es tracten com a **previsió** (zona ombrejada).
 - Afegir un país: una línia a `PAISOS` del script (nom català, bandera, codi BIS, és OCDE).
@@ -80,7 +84,14 @@ han de quedar clares com a tals.
 ⚠️ La carpeta `C:\Users\Carles` sencera és un repositori git. Aquest projecte té el **seu propi**
 `.git`; comprova `git rev-parse --show-toplevel` abans de fer cap commit.
 
-## 8. Textos d'actualitat (revisar-los!)
+## 8. Immigració: to i límits
+
+Tema políticament sensible. La pestanya ha de mantenir **beneficis i costos junts**, només dades
+oficials amb la font a la vista, i sense generalitzacions sobre col·lectius. La part de "control"
+es mesura amb dades objectives (irregulars detectats, ordres d'expulsió, retorns efectius). No s'hi
+han posat dades de delinqüència per nacionalitat: són fàcils de malinterpretar sense context.
+
+## 9. Textos d'actualitat (revisar-los!)
 
 La targeta "⚠️ Actualitat" d'Inici (`actualitatHTML()`, amb la data a `ACTUALITAT_DATA`) és
 **text escrit a mà** sobre la crisi de l'estret d'Ormuz del 2026. Les xifres que l'acompanyen

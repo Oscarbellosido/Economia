@@ -36,6 +36,7 @@ Economia/
 | 🏭 **Creixement** | Creixement del PIB, atur i riquesa per habitant |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
 | 🔍 **L'altra cara** | El que no surt als titulars: pisos vs sous, la "màquina de fer diners" dels bancs centrals, diners vs economia a la zona euro, la febre de l'or i per què la inflació oficial pot semblar baixa |
+| 🧳 **Immigració** | Quanta n'hi ha i com arriba, immigració irregular i expulsions que es fan efectives, feina i pobresa, remeses, què aporta i què costa, i el percentatge de població nascuda a fora a **qualsevol poble de Catalunya** |
 | 📊 **Comparar** | Taula de tots els països, ordenable, per a qualsevol any |
 | 📘 **Com funciona** | El cicle de l'economia explicat i un glossari |
 
@@ -56,8 +57,11 @@ Totes són oficials i gratuïtes, sense clau:
 | Balanç dels bancs centrals | **BIS** — Central bank total assets |
 | Diners en circulació (M3), PIB nominal i preus de la zona euro | **BCE** (`data-api.ecb.europa.eu`) |
 | Reserves d'or | **FMI** — International Reserves (`api.imf.org`) |
+| Immigració a Europa (població nascuda a fora, migració neta, irregulars, ordres d'expulsió i retorns, asil, permisos, feina i pobresa) | **Eurostat** |
+| Immigrants al món i remeses | **Banc Mundial** |
+| Població nascuda a l'estranger per municipi i comarca | **Idescat** (padró; l'última dada de cada poble es consulta en directe) |
 
-L'app **no** es connecta a aquests servidors: només llegeix `dades.json`. Així carrega de
+L'app **no** es connecta a aquests servidors: només llegeix `dades.json` (l'única excepció és l'última dada de cada municipi, que es demana a l'Idescat quan tries el poble). Així carrega de
 pressa, funciona sense connexió i no depèn de si aquests servidors permeten connexions des
 del navegador (l'FMI no ho permet).
 
