@@ -29,6 +29,7 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
 - Afegir un país: una línia a `PAISOS` del script (nom català, bandera, codi BIS, és OCDE).
   Afegir un indicador FMI: una línia a `FMI`. Torna a executar el script.
 - L'OCDE falla amb HTTP 500 si es demana una llista de països: es baixa el conjunt `all`.
+  També té un **límit de consultes per hora (HTTP 429)**: no facis proves repetides ni consultes país per país.
 - Si una font falla, el script conserva la versió anterior d'aquella font. Si l'FMI arriba
   buit, no desa res.
 

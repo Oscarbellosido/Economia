@@ -35,7 +35,7 @@ const FMI = {
   PPPSH: 'quota', HH_LS: 'deuteLlars', NFC_LS: 'deuteEmpreses',
 };
 
-async function get(url, as = 'json', intents = 3) {
+async function get(url, as = 'json', intents = 3, espera = 5000) {
   for (let i = 1; ; i++) {
     try {
       const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(60000) });
@@ -43,7 +43,7 @@ async function get(url, as = 'json', intents = 3) {
       return as === 'json' ? await r.json() : await r.text();
     } catch (e) {
       if (i >= intents) throw new Error(`${url}: ${e.message}`);
-      await new Promise(res => setTimeout(res, 2000 * i));
+      await new Promise(res => setTimeout(res, espera * i));
     }
   }
 }
@@ -96,9 +96,12 @@ async function main() {
   // souReal = dòlars PPA a preus constants (comparable entre països)
   // souNom  = moneda nacional a preus corrents (per comparar-ne el creixement amb la inflació)
   // Es demana el conjunt sencer ("all", ~700 KB): la consulta amb llista de països falla sovint amb HTTP 500.
+  // L'OCDE té un límit de consultes per hora (HTTP 429) i errors 500 puntuals: una sola consulta,
+  // amb reintents ben espaiats. Si tot falla, es conserven els sous de la descàrrega anterior.
   try {
-    const text = await get(`https://sdmx.oecd.org/public/rest/data/OECD.ELS.SAE,DSD_EARNINGS@AV_AN_WAGE,1.0/all?startPeriod=${ANY0}&format=csvfilewithlabels`, 'text');
-    for (const f of csv(text)) {
+    const url = `https://sdmx.oecd.org/public/rest/data/OECD.ELS.SAE,DSD_EARNINGS@AV_AN_WAGE,1.0/all?startPeriod=${ANY0}&format=csvfilewithlabels`;
+    const files = csv(await get(url, 'text', 4, 30000));
+    for (const f of files) {
       const p = out.paisos[f.REF_AREA];
       if (!p || f.OBS_VALUE === '' || f.MEASURE !== 'WG' || f.AGGREGATION_OPERATION !== 'MEAN') continue;
       let clau = null;
