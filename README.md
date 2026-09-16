@@ -71,8 +71,11 @@ del navegador (l'FMI no ho permet).
 node scripts/actualitza.js
 ```
 
-Si una font falla (l'OCDE a vegades respon amb error), el script conserva les dades antigues
-d'aquella font en lloc de deixar-la buida.
+Si una font falla, el script conserva les dades antigues d'aquella font en lloc de deixar-la buida.
+
+⚠️ **Els sous (OCDE) s'han d'actualitzar des de l'ordinador.** L'OCDE respon amb error als servidors
+de GitHub, però funciona bé des de casa. Com que publica els sous un cop l'any (cap a l'estiu), n'hi ha
+prou d'executar el script a mà una vegada l'any i pujar el `dades.json` amb un commit.
 
 ## 🖥️ Provar-la a l'ordinador
 
