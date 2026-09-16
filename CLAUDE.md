@@ -22,6 +22,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ BIS SDMX         → altra.habitatge[ISO3], altra.balanc[codi BIS]   (pestanya "L'altra cara")
   ├─ BCE              → altra.diners {m3, pib, preus}
   ├─ FMI IRFCL        → altra.or[ISO3][any] en tones (+ altra.orNoms per als països extra)
+  ├─ OCDE FINMARK     → fiscal.bons[ISO3|EURO]["AAAA-MM"]   (bons a 10 anys, pestanya Deute)
+  ├─ OCDE Taxing Wages→ fiscal.impostos[ISO3].{irpf, irpfSS, cunya, brut, net}  (pestanya Impostos)
   ├─ Eurostat         → immi.eu[ISO3|EU][clau][any]   (pestanya "Immigració"; Grècia és EL a Eurostat)
   ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
   └─ Idescat (taules) → immi.cat {mun, com, anys, dades}: padró per lloc de naixement 2000-2022
@@ -39,6 +41,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   Retorna HTTP 500 a molts `fetch` de Node (sobretot des de GitHub Actions) però respon bé a `curl`:
   per això `get()` acaba provant amb `curl` quan fetch falla (comprovat el 2026-09-16).
   També té un **límit de consultes per hora (HTTP 429)**: no facis proves repetides ni consultes país per país.
+- Interessos del deute = `primari` (FMI Fiscal Monitor) − `deficit` (WEO). Són interessos **nets**.
+- La prima de risc es calcula sempre amb el **mateix mes** per al país i per a Alemanya.
 - Si una font falla, el script conserva la versió anterior d'aquella font. Si l'FMI arriba
   buit, no desa res.
 

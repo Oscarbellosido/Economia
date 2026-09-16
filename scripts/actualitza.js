@@ -1,7 +1,8 @@
 // Baixa les dades econòmiques de fonts oficials i les desa a dades.json.
 // S'executa a mà (`node scripts/actualitza.js`) o cada mes des de GitHub Actions.
 // Fonts: FMI (World Economic Outlook, Global Debt Database i reserves d'or), OCDE (salaris),
-// BIS (tipus d'interès, habitatge i balanç dels bancs centrals) i BCE (diners en circulació).
+// BIS (tipus d'interès, habitatge i balanç dels bancs centrals), BCE (diners en circulació),
+// OCDE (bons a 10 anys, impostos sobre el sou), Eurostat, Banc Mundial i Idescat (immigració).
 // Per provar-lo sense gastar consultes de l'OCDE (té límit per hora): SENSE_OCDE=1 node scripts/actualitza.js
 // L'app llegeix només dades.json: així no depèn del CORS de cap servidor i funciona sense connexió.
 
@@ -52,6 +53,8 @@ const FMI = {
   NGDPD: 'pib', NGDP_RPCH: 'creix', PCPIPCH: 'infl', LUR: 'atur', GGXWDG_NGDP: 'deute',
   GGXCNL_NGDP: 'deficit', BCA_NGDPD: 'cc', NGDPDPC: 'pibpc', PPPPC: 'pibpcppa', LP: 'pob',
   PPPSH: 'quota', HH_LS: 'deuteLlars', NFC_LS: 'deuteEmpreses',
+  // saldo primari (sense interessos): interessos pagats = saldo primari − saldo total (deficit)
+  GGXONLB_G01_GDP_PT: 'primari',
 };
 
 async function get(url, as = 'json', intents = 3, espera = 5000, extra = {}) {
@@ -259,6 +262,39 @@ async function main() {
     console.log('FMI or ok', Object.keys(or).length, 'països');
   } catch (e) { console.warn('FMI or ha fallat:', e.message); }
 
+  // ════ El preu del deute i els impostos sobre el sou ════
+  out.fiscal = {};
+
+  // ── OCDE: rendiment del bo públic a 10 anys (mensual) ──
+  try {
+    const url = `https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_FINMARK,4.0/.M.IRLT.......?startPeriod=${ANY0}-01&format=csvfile`;
+    const bons = {};
+    for (const f of csv(await get(url, 'text', 2, 20000))) {
+      const k = f.REF_AREA === 'EA20' ? 'EURO' : f.REF_AREA;
+      if (!(k in PAISOS || k === 'EURO') || f.OBS_VALUE === '' || f.OBS_VALUE === 'NaN') continue;
+      (bons[k] ||= {})[f.TIME_PERIOD] = r1(+f.OBS_VALUE);
+    }
+    out.fiscal.bons = bons;
+    out.fonts.bons = { font: 'OCDE · Long-term interest rates (bons a 10 anys)', unitat: '% anual, mitjana del mes' };
+    console.log('OCDE bons ok', Object.keys(bons).length, 'països');
+  } catch (e) { console.warn('OCDE bons ha fallat:', e.message); }
+
+  // ── OCDE Taxing Wages: impostos d'un treballador sense fills que cobra el sou mitjà ──
+  try {
+    const url = `https://sdmx.oecd.org/public/rest/data/OECD.CTP.TPS,DSD_TAX_WAGES_COMP@DF_TW_COMP,2.1/.AV_ITR+NPATR+AV_TW+GEBT+NIAT..S_C0.AW100.....?startPeriod=${ANY0}&format=csvfile`;
+    const CLAU = { AV_ITR: 'irpf', NPATR: 'irpfSS', AV_TW: 'cunya', GEBT: 'brut', NIAT: 'net' };
+    const tw = {};
+    for (const f of csv(await get(url, 'text', 2, 20000))) {
+      const k = CLAU[f.MEASURE];
+      if (!k || !(f.REF_AREA in PAISOS) || f.OBS_VALUE === '') continue;
+      if ((k === 'brut' || k === 'net') && f.UNIT_MEASURE !== 'XDC') continue; // en moneda del país
+      ((tw[f.REF_AREA] ||= {})[k] ||= {})[f.TIME_PERIOD] = k === 'brut' || k === 'net' ? Math.round(+f.OBS_VALUE) : r1(+f.OBS_VALUE);
+    }
+    out.fiscal.impostos = tw;
+    out.fonts.impostos = { font: 'OCDE · Taxing Wages (treballador sense fills, sou mitjà)', unitat: '% del sou brut o del cost laboral' };
+    console.log('OCDE impostos ok', Object.keys(tw).length, 'països');
+  } catch (e) { console.warn('OCDE impostos ha fallat:', e.message); }
+
   // ════ Immigració ════
   out.immi = {};
 
@@ -349,6 +385,7 @@ async function main() {
     for (const c of ['souReal', 'souNom']) if (!out.fonts[c] && vell.fonts[c]) out.fonts[c] = vell.fonts[c];
     for (const c of ['habitatge', 'balanc', 'diners', 'or']) if (!out.altra[c] && vell.altra?.[c]) { out.altra[c] = vell.altra[c]; out.fonts[c] = vell.fonts[c]; }
     if (!out.altra.orNoms && vell.altra?.orNoms) out.altra.orNoms = vell.altra.orNoms;
+    for (const [c, f] of [['bons', 'bons'], ['impostos', 'impostos']]) if (!out.fiscal[c] && vell.fiscal?.[c]) { out.fiscal[c] = vell.fiscal[c]; out.fonts[f] = vell.fonts[f]; }
     for (const [c, f] of [['eu', 'immiEU'], ['mon', 'immiMon'], ['cat', 'immiCat']]) if (!out.immi[c] && vell.immi?.[c]) { out.immi[c] = vell.immi[c]; out.fonts[f] = vell.fonts[f]; }
   }
   if (!out.paisos.USA.s.pib) throw new Error('Les dades del FMI han arribat buides; no es desa res.');

@@ -31,7 +31,8 @@ Economia/
 | 🏠 **Inici** | Les xifres del món d'aquest any, un avís d'actualitat (la crisi d'Ormuz), les 15 economies més grans i tres idees clau |
 | 🛒 **Inflació** | Inflació anual per país des del 2000, quant han pujat els preus des del 2020 i una calculadora de "què valen els teus diners" |
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
-| 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses) i dèficit |
+| 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal i el sou brut i net descomptant la inflació |
+| 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses), dèficit i **quant costa**: bons a 10 anys, prima de risc i interessos pagats |
 | 📈 **Tipus d'interès** | Els tipus dels bancs centrals des del 2007 i els tipus reals (tipus menys inflació) |
 | 🏭 **Creixement** | Creixement del PIB, atur i riquesa per habitant |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
@@ -52,6 +53,9 @@ Totes són oficials i gratuïtes, sense clau:
 | PIB, creixement, inflació, atur, deute públic, dèficit, balança exterior, població | **FMI** — World Economic Outlook (`imf.org/external/datamapper/api`) |
 | Deute de famílies i empreses | **FMI** — Global Debt Database |
 | Sou mitjà anual (nominal i real) | **OCDE** — Average annual wages (`sdmx.oecd.org`) |
+| Rendiment dels bons a 10 anys | **OCDE** — Financial market (long-term interest rates) |
+| IRPF, cotitzacions i cunya fiscal | **OCDE** — Taxing Wages |
+| Interessos del deute (saldo primari) | **FMI** — Fiscal Monitor |
 | Tipus d'interès oficials | **BIS** (Banc de Pagaments Internacionals) — Central bank policy rates (`stats.bis.org`) |
 | Preu real de l'habitatge | **BIS** — Residential property prices |
 | Balanç dels bancs centrals | **BIS** — Central bank total assets |

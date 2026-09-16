@@ -244,6 +244,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <button data-v="inici" onclick="go('inici')">🏠 Inici</button>
       <button data-v="inflacio" onclick="go('inflacio')">🛒 Inflació</button>
       <button data-v="sous" onclick="go('sous')">💶 Sous</button>
+      <button data-v="impostos" onclick="go('impostos')">🧾 Impostos</button>
       <button data-v="deute" onclick="go('deute')">🏦 Deute</button>
       <button data-v="tipus" onclick="go('tipus')">📈 Tipus d'interès</button>
       <button data-v="creixement" onclick="go('creixement')">🏭 Creixement</button>
@@ -265,6 +266,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
   <section class="view" id="v-inflacio"></section>
   <!-- ── Sous ── -->
   <section class="view" id="v-sous"></section>
+  <!-- ── Impostos ── -->
+  <section class="view" id="v-impostos"></section>
   <!-- ── Deute ── -->
   <section class="view" id="v-deute"></section>
   <!-- ── Tipus ── -->
@@ -294,7 +297,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -515,7 +518,7 @@ const chart = (id, fn) => { pending.push([id, fn]); return `<div class="chart" i
 function flushCharts() { for (const [id, fn] of pending) { const el = document.getElementById(id); if (el) fn(el); } }
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
-const VIEWS = { inici: renderInici, inflacio: renderInflacio, sous: renderSous, deute: renderDeute, tipus: renderTipus,
+const VIEWS = { inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, tipus: renderTipus,
   creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, immigracio: renderImmigracio, aprendre: renderAprendre };
 function go(v) {
   if (!VIEWS[v]) v = 'inici';
@@ -778,6 +781,73 @@ function renderSous() {
   El sou mitjà inclou tots els assalariats a temps complet equivalent.</p>`;
 }
 
+/* ── 💸 El preu del deute ───────────────────────────────────────────────────── */
+// Rendiment del bo a 10 anys (OCDE, mensual), prima de risc i interessos pagats (FMI).
+const EURO_PAISOS = ['DEU', 'FRA', 'ITA', 'ESP', 'NLD', 'BEL', 'AUT', 'PRT', 'GRC', 'IRL'];
+const bons = c => D.fiscal?.bons?.[c];
+const bonsPts = c => Object.entries(bons(c) || {}).map(([k, v]) => [monthX(k), v]).sort((a, b) => a[0] - b[0]);
+const bonUltim = c => { const e = Object.entries(bons(c) || {}).sort((a, b) => a[0] < b[0] ? -1 : 1); return e.at(-1); };
+// "de" + nom amb apòstrof quan cal (d'Espanya, d'Itàlia, de França)
+const deNom = n => (/^[aeiouàèéíòóúh]/i.test(n) ? "d'" : 'de ') + n;
+const interessos = (c, a) => { const pr = val(c, 'primari', a), s = val(c, 'deficit', a); return pr != null && s != null ? pr - s : null; };
+
+function costDeuteHTML(p) {
+  if (!D.fiscal?.bons) return '';
+  const de = bonUltim('DEU');
+  // la prima es calcula amb el mateix mes per als dos països (l'últim que tinguin tots dos)
+  const prima = EURO_PAISOS.filter(c => c !== 'DEU' && bons(c)).map(c => {
+    const mes = Object.keys(bons(c)).filter(k => bons('DEU')?.[k] != null).sort().at(-1);
+    return { c, name: label(c), v: mes ? (bons(c)[mes] - bons('DEU')[mes]) * 100 : null, mes };
+  })
+    .filter(r => r.v != null).sort((a, b) => b.v - a.v);
+  const fr = prima.find(r => r.c === 'FRA'), it = prima.find(r => r.c === 'ITA'), es = prima.find(r => r.c === 'ESP');
+  const selB = sel.filter(c => bons(c));
+  const ints = countries().map(c => ({ c, name: label(c), v: interessos(c, Y) })).filter(r => r.v != null).sort((a, b) => b.v - a.v);
+  const ip = interessos(p, Y), dp = val(p, 'deute', Y);
+  return `
+  <div class="card">
+    <h3>💸 Quant costa el deute?</h3>
+    <p class="sub">Els estats es financen venent <b>bons</b>. El que paguen per un bo a 10 anys és el termòmetre de la confiança: si els inversors
+    tenen dubtes, demanen més interès. Aquest preu acaba als impostos, a les hipoteques i al que queda per a sanitat i pensions.</p>
+    <div class="tiles">
+      ${de ? tile('🇩🇪 Alemanya (referència)', pct(de[1], 2), `bo a 10 anys, ${monthLabel(monthX(de[0]))}`) : ''}
+      ${es ? tile('🇪🇸 Prima de risc d\'Espanya', nf(es.v, 0) + ' pb', 'punts bàsics per sobre d\'Alemanya') : ''}
+      ${fr && it ? tile('🇫🇷 França vs 🇮🇹 Itàlia', `${nf(fr.v, 0)} / ${nf(it.v, 0)} pb`, fr.v >= it.v ? 'França ja paga tant o més que Itàlia' : 'Itàlia encara paga més que França',
+        fr.v >= it.v ? '<span class="badge bad">⚠ canvi de rol</span>' : '') : ''}
+      ${ip != null ? tile(`Interessos ${esc(deNom(ent(p).nom))} ${Y}`, pct(ip), `del PIB, amb un deute del ${pct(dp, 0)}`) : ''}
+    </div>
+    <h3>Rendiment del bo a 10 anys</h3>
+    <p class="sub">Mitjana mensual. Es veuen la crisi de l'euro (2011-2012), els tipus gairebé a zero (2015-2021) i la pujada des del 2022.</p>
+    ${chipsHTML(c => !!bons(c))}
+    ${chart('c-bons', el => lineChart(el, { title: 'Bons a 10 anys', months: true, fmt: v => pct(v, 2), tick: v => v + ' %',
+      series: selB.map(c => ({ name: label(c), short: ent(c).nom, color: col(c), pts: bonsPts(c) })) }))}
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <h3>Prima de risc a la zona euro</h3>
+        <p class="sub">Diferència amb el bo alemany el mateix mes, en punts bàsics (100 pb = 1 %). Últim mes disponible de cada país.</p>
+        ${barsHTML(prima, { fmt: v => nf(v, 0) + ' pb', me: p })}
+      </div>
+      <div>
+        <h3>Interessos pagats en % del PIB (${Y})</h3>
+        <p class="sub">Interessos nets del deute públic, previsió de l'FMI.${val(p, 'pib', Y) ? ` A ${esc(ent(p).nom)}, cada 1 % del PIB són uns ${int(val(p, 'pib', Y) * 10)} milions de dòlars l'any.` : ''}</p>
+        ${barsHTML(ints, { fmt: v => pct(v), me: p })}
+      </div>
+    </div>
+    <h3 style="margin-top:14px">Evolució dels interessos</h3>
+    <p class="sub">% del PIB. Com que el deute vell es va renovant a tipus nous més alts, aquesta factura puja a poc a poc durant anys.</p>
+    ${chart('c-ints', el => lineChart(el, { title: 'Interessos del deute', forecast: Y, fmt: v => pct(v),
+      series: sel.filter(c => ent(c).s.primari).map(c => ({ name: label(c), short: ent(c).nom, color: col(c),
+        pts: Object.keys(ent(c).s.primari).map(Number).map(a => [a, interessos(c, a)]).filter(x => x[1] != null) })) }))}
+    <div class="callout" style="margin-top:12px">
+      <b>Per què importa si "sempre hi ha algú que compra"?</b>
+      <p class="sub">Durant anys el BCE i el Banc del Japó compraven bons sense discutir el preu. Ara ja no ho fan, i els estats han de convèncer
+      inversors privats, que demanen més interès, sobretot si el dèficit no baixa o la política és inestable. Un estat pot ser <b>solvent</b>
+      (acabarà pagant) i alhora tenir problemes de <b>liquidesa</b> (li costa trobar qui li deixi diners avui).</p>
+      <p class="muted">Fonts: OCDE (rendiment dels bons a 10 anys) i FMI (saldo primari i saldo total; els interessos són la diferència).</p>
+    </div>
+  </div>`;
+}
+
 /* ── 🏦 Deute ───────────────────────────────────────────────────────────────── */
 let deutePais = lsGet(LS_PAIS, 'ESP');
 function renderDeute() {
@@ -822,6 +892,7 @@ function renderDeute() {
     <p class="sub">Saldo de les administracions públiques el ${ay}, en % del PIB. Un valor negatiu (dèficit) vol dir que l'estat ha de demanar més diners prestats aquell any, i el deute creix.</p>
     ${barsHTML(defs, { fmt: v => sgn(v) + ' %', me: p })}
   </div>
+  ${costDeuteHTML(p)}
   <div class="card">
     <h3>És dolent deure molt?</h3>
     <div class="grid g3">
@@ -1404,6 +1475,124 @@ function renderImmigracio() {
       sol sumar a les arques públiques; la irregular o la que no s'integra al mercat laboral sol costar més del que aporta. Per això els països que gestionen millor
       la immigració combinen control de fronteres i retorns efectius amb vies legals per venir a treballar, formació i aprenentatge de la llengua.</p>
     </div>
+  </div>`;
+}
+
+/* ── 🧾 Impostos ────────────────────────────────────────────────────────────── */
+// OCDE Taxing Wages: treballador sense fills que cobra el sou mitjà del seu país.
+let impPais = lsGet('economia_imppais', 'ESP');
+const IMP = () => D.fiscal?.impostos || {};
+const impV = (c, k, a) => IMP()[c]?.[k]?.[a];
+const impLast = c => { const s = IMP()[c]?.irpf; return s ? Math.max(...Object.keys(s).map(Number)) : null; };
+
+function renderImpostos() {
+  const T = IMP();
+  const paisos = countries().filter(c => T[c]?.irpf);
+  if (!paisos.length) return '<p class="muted">Aquestes dades encara no s\'han baixat.</p>';
+  const p = paisos.includes(impPais) ? impPais : paisos[0];
+  const aU = impLast(p), a0 = 2000, aI = 2020;
+  const irpf0 = impV(p, 'irpf', a0), irpfI = impV(p, 'irpf', aI), irpfU = impV(p, 'irpf', aU);
+
+  // Nòmina: on van 100 € del que paga l'empresa
+  const brut = impV(p, 'brut', aU), net = impV(p, 'net', aU), cunya = impV(p, 'cunya', aU), ss = impV(p, 'irpfSS', aU);
+  let nomina = '';
+  if (brut && net && cunya != null && ss != null) {
+    const cost = net / (1 - cunya / 100);
+    const parts = [
+      ['🏢 Cotització de l\'empresa', (cost - brut) / cost * 100, 'var(--s4)'],
+      ['🏛️ IRPF', brut * irpfU / 100 / cost * 100, 'var(--s2)'],
+      ['🧑‍💼 Cotització del treballador', brut * (ss - irpfU) / 100 / cost * 100, 'var(--s5)'],
+      ['💶 El que cobres net', net / cost * 100, 'var(--s1)'],
+    ];
+    const mon = ent(p).moneda || '';
+    nomina = `
+    <div class="card">
+      <h3>🧾 On van els diners d'un sou mitjà a ${esc(ent(p).nom)} (${aU})</h3>
+      <p class="sub">De cada 100 que paga l'empresa per un treballador sense fills que cobra el sou mitjà:</p>
+      <div style="display:flex;height:34px;border-radius:8px;overflow:hidden;gap:2px;margin:10px 0" role="img" aria-label="Repartiment del cost laboral">
+        ${parts.map(([n, v, c]) => `<div title="${esc(n)}: ${nf(v, 1)}" style="width:${v}%;background:${c}"></div>`).join('')}
+      </div>
+      <div class="grid g2">
+        ${parts.map(([n, v, c]) => `<div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:3px;background:${c};flex:none"></span>
+          <span style="flex:1">${esc(n)}</span><b class="num">${nf(v, 1)}</b></div>`).join('')}
+      </div>
+      <p class="sub" style="margin-top:10px">Sou brut: <b>${int(brut)} ${esc(mon)}</b> l'any · net: <b>${int(net)} ${esc(mon)}</b> · cost per a l'empresa: <b>${int(cost)} ${esc(mon)}</b>.
+      La <b>cunya fiscal</b> (tot el que es queda l'estat) és del <b>${pct(cunya)}</b>.</p>
+    </div>`;
+  }
+
+  // Sou brut i net en termes reals (descomptant la inflació de l'FMI), 2000 = 100
+  const real = k => {
+    const s = IMP()[p]?.[k]; if (!s || !s[a0]) return [];
+    let f = 1; const out = [[a0, 100]];
+    for (let a = a0 + 1; s[a] != null; a++) { const i = val(p, 'infl', a); if (i == null) break; f *= 1 + i / 100; out.push([a, s[a] / s[a0] / f * 100]); }
+    return out;
+  };
+  const rb = real('brut'), rn = real('net');
+  const pujada = paisos.map(c => ({ c, name: label(c), v: impV(c, 'irpf', impLast(c)) != null && impV(c, 'irpf', aI) != null ? impV(c, 'irpf', impLast(c)) - impV(c, 'irpf', aI) : null }))
+    .filter(r => r.v != null).sort((a, b) => b.v - a.v);
+  const puja = pujada.filter(r => r.v > 0.2).length;
+  const cunyes = paisos.map(c => ({ c, name: label(c), v: impV(c, 'cunya', impLast(c)) })).sort((a, b) => b.v - a.v);
+  const selI = sel.filter(c => T[c]?.irpf);
+
+  return `
+  <div class="intro">
+    <h2>🧾 Impostos sobre el sou: la pujada que no es vota</h2>
+    <p class="sub">Quan la inflació puja i et pugen el sou per compensar-la, pots pagar un percentatge més alt d'IRPF encara que <b>no hagi canviat cap llei</b>:
+    passes a trams més alts perquè els trams no s'actualitzen. Això es diu <b>progressivitat en fred</b>. Els teus diners valen el mateix, però Hisenda se n'emporta més.</p>
+    <div class="controls">País:
+      <select onchange="impPais=this.value;lsSet('economia_imppais',impPais);renderView()" aria-label="País">${paisos.map(c => `<option value="${c}" ${c === p ? 'selected' : ''}>${esc(label(c))}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="tiles">
+    ${irpf0 != null ? tile(`IRPF el ${a0}`, pct(irpf0), 'del sou brut mitjà') : ''}
+    ${irpfI != null ? tile(`IRPF el ${aI}`, pct(irpfI), 'abans de la inflació') : ''}
+    ${irpfU != null ? tile(`IRPF el ${aU}`, pct(irpfU), irpfI != null ? `${sgn(irpfU - irpfI)} punts des del ${aI}` : '',
+      irpfI != null && irpfU - irpfI > 0.5 ? '<span class="badge bad">▲ més impostos</span>' : '') : ''}
+    ${ss != null ? tile('IRPF + cotitzacions', pct(ss), 'el que et treuen de la nòmina') : ''}
+  </div>
+  ${nomina}
+  <div class="card">
+    <h3>IRPF d'un sou mitjà, any per any</h3>
+    <p class="sub">% del sou brut que es paga d'impost sobre la renda (estatal i autonòmic o local). Com que el sou mitjà puja cada any amb els preus,
+    si els trams no s'actualitzen aquest percentatge va pujant sol.</p>
+    ${chipsHTML(c => !!T[c]?.irpf)}
+    ${chart('c-irpf', el => lineChart(el, { title: 'IRPF del sou mitjà', fmt: v => pct(v), tick: v => v + ' %',
+      series: selI.map(c => ({ name: label(c), short: ent(c).nom, color: col(c), pts: Object.entries(T[c].irpf).map(([a, v]) => [+a, v]) })) }))}
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Qui ha apujat més l'IRPF des del ${aI}?</h3>
+      <p class="sub">Canvi en punts del percentatge d'IRPF d'un sou mitjà, del ${aI} a l'últim any. Ha pujat en ${puja} dels ${pujada.length} països.
+      Pot venir de la inflació (trams sense actualitzar) o de canvis de llei.</p>
+      ${barsHTML(pujada, { fmt: v => sgn(v) + ' pt', me: p })}
+    </div>
+    <div class="card">
+      <h3>Cunya fiscal (${impLast('ESP') || ''})</h3>
+      <p class="sub">Part del cost d'un treballador que se n'emporta l'estat: IRPF i cotitzacions del treballador i de l'empresa.</p>
+      ${barsHTML(cunyes, { fmt: v => pct(v, 0), me: p })}
+    </div>
+  </div>
+  ${rb.length > 1 ? `<div class="card">
+    <h3>El sou brut i el sou net, descomptant la inflació (${esc(ent(p).nom)})</h3>
+    <p class="sub">${a0} = 100. Si la línia del net queda per sota de la del brut, és que els impostos s'han menjat part de la millora.</p>
+    ${chart('c-imp-real', el => lineChart(el, { title: 'Sou brut i net reals', zero: false, fmt: v => nf(v), ref: { y: 100, label: 'nivell del ' + a0 },
+      series: [{ name: 'Sou brut real', short: 'Brut', color: 'var(--s2)', pts: rb }, { name: 'Sou net real', short: 'Net', color: 'var(--s1)', pts: rn }] }))}
+    <p class="sub" style="margin-top:8px">Del ${a0} al ${rb.at(-1)[0]}: sou brut real ${sgn(rb.at(-1)[1] - 100, 1)} %, sou net real ${sgn(rn.at(-1)[1] - 100, 1)} %.</p>
+    <p class="muted">Sou mitjà segons l'OCDE (Taxing Wages), deflactat amb la inflació de l'FMI.</p>
+  </div>` : ''}
+  <div class="card">
+    <h3>Com funciona la progressivitat en fred</h3>
+    <div class="flow">
+      <div class="step"><b>📈 Inflació del 10 %</b>Tot val un 10 % més.</div><div class="arr">→</div>
+      <div class="step"><b>💶 Sou +10 %</b>Et pugen el sou el mateix: en teoria, quedes igual.</div><div class="arr">→</div>
+      <div class="step"><b>🪜 Tram més alt</b>Els trams de l'IRPF no s'han mogut: part del sou tributa a un tipus més alt.</div><div class="arr">→</div>
+      <div class="step"><b>📉 Net real més baix</b>Pagues un % més gran i el teu sou net compra menys que abans.</div>
+    </div>
+    <p class="sub" style="margin-top:10px">La solució tècnica és senzilla: <b>actualitzar els trams amb la inflació cada any</b>, com fan per llei alguns països.
+    Si no es fa, és una pujada d'impostos que no passa per cap votació. A Espanya, l'escala estatal no s'ha actualitzat amb la inflació dels últims anys;
+    algunes comunitats sí que han ajustat la seva part.</p>
+    <p class="muted">Font: OCDE, Taxing Wages. Treballador sense fills que cobra el 100 % del sou mitjà del país; altres situacions familiars o sous paguen percentatges diferents.</p>
   </div>`;
 }
 
