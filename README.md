@@ -35,6 +35,7 @@ Economia/
 | 📈 **Tipus d'interès** | Els tipus dels bancs centrals des del 2007 i els tipus reals (tipus menys inflació) |
 | 🏭 **Creixement** | Creixement del PIB, atur i riquesa per habitant |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
+| 🔍 **L'altra cara** | El que no surt als titulars: pisos vs sous, la "màquina de fer diners" dels bancs centrals, diners vs economia a la zona euro, la febre de l'or i per què la inflació oficial pot semblar baixa |
 | 📊 **Comparar** | Taula de tots els països, ordenable, per a qualsevol any |
 | 📘 **Com funciona** | El cicle de l'economia explicat i un glossari |
 
@@ -51,6 +52,10 @@ Totes són oficials i gratuïtes, sense clau:
 | Deute de famílies i empreses | **FMI** — Global Debt Database |
 | Sou mitjà anual (nominal i real) | **OCDE** — Average annual wages (`sdmx.oecd.org`) |
 | Tipus d'interès oficials | **BIS** (Banc de Pagaments Internacionals) — Central bank policy rates (`stats.bis.org`) |
+| Preu real de l'habitatge | **BIS** — Residential property prices |
+| Balanç dels bancs centrals | **BIS** — Central bank total assets |
+| Diners en circulació (M3), PIB nominal i preus de la zona euro | **BCE** (`data-api.ecb.europa.eu`) |
+| Reserves d'or | **FMI** — International Reserves (`api.imf.org`) |
 
 L'app **no** es connecta a aquests servidors: només llegeix `dades.json`. Així carrega de
 pressa, funciona sense connexió i no depèn de si aquests servidors permeten connexions des

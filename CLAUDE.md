@@ -18,7 +18,10 @@ CSS + JS. No hi introdueixis frameworks ni llibreries de gràfics: els gràfics 
 scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ FMI DataMapper   → paisos[ISO3].s.{pib, creix, infl, atur, deute, deficit, cc, pibpc, pibpcppa, pob, quota, deuteLlars, deuteEmpreses}
   ├─ OCDE SDMX        → paisos[ISO3].s.{souReal, souNom}, moneda, souBase
-  └─ BIS SDMX         → tipus[codi BIS]["AAAA-MM"]
+  ├─ BIS SDMX         → tipus[codi BIS]["AAAA-MM"]
+  ├─ BIS SDMX         → altra.habitatge[ISO3], altra.balanc[codi BIS]   (pestanya "L'altra cara")
+  ├─ BCE              → altra.diners {m3, pib, preus}
+  └─ FMI IRFCL        → altra.or[ISO3][any] en tones (+ altra.orNoms per als països extra)
         ↓
      dades.json  ──→  index.html: init() → D → go(vista) → renderXxx() → flushCharts()
 ```
@@ -47,6 +50,12 @@ registra el gràfic i `flushCharts()` el pinta quan el contenidor ja té amplada
 - Un sol eix Y per gràfic; mai dos eixos.
 - Claus de `localStorage`: `economia_theme`, `economia_sel`(+`_c`), `economia_banks`(+`_c`),
   `economia_pais`, `economia_fitxa`, `economia_calc`, `economia_dades_v1` (còpia de seguretat).
+
+- Per provar el script sense gastar consultes de l'OCDE: `SENSE_OCDE=1 node scripts/actualitza.js`
+  (conserva els sous de l'última descàrrega).
+- "L'altra cara" ha de continuar sent **dades oficials** amb context crític, no índexs alternatius
+  sense metodologia clara. El balanç dels bancs centrals va en dòlars (el BIS no dona la Fed en
+  una altra unitat), i es divideix pel PIB en dòlars de l'FMI.
 
 ## 4. Provar
 

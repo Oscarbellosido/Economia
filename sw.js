@@ -1,6 +1,6 @@
 // Service worker: l'app funciona sense connexió i s'instal·la com a aplicació.
 // Puja CACHE cada vegada que canviïs index.html perquè els mòbils agafin la versió nova.
-const CACHE = 'economia-v2';
+const CACHE = 'economia-v3';
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png', 'dades.json'];
 
 self.addEventListener('install', e => {

@@ -197,6 +197,9 @@ select, input[type=number] {
 .bar .fill { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; }
 .bar .axis0 { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
 .bar .val { text-align: right; font-variant-numeric: tabular-nums; }
+.bar.pair .dbl { display: grid; gap: 3px; }
+.bar.pair .track { height: 11px; }
+.bar.pair .val { display: grid; line-height: 1.15; font-size: .8rem; }
 .bar .ref { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px dashed var(--text-2); }
 
 /* Taula */
@@ -243,6 +246,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <button data-v="tipus" onclick="go('tipus')">📈 Tipus d'interès</button>
       <button data-v="creixement" onclick="go('creixement')">🏭 Creixement</button>
       <button data-v="pais" onclick="go('pais')">📍 Fitxa de país</button>
+      <button data-v="altra" onclick="go('altra')">🔍 L'altra cara</button>
       <button data-v="comparar" onclick="go('comparar')">📊 Comparar</button>
       <button data-v="aprendre" onclick="go('aprendre')">📘 Com funciona</button>
     </nav>
@@ -268,6 +272,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
   <section class="view" id="v-pais"></section>
   <!-- ── Comparar ── -->
   <section class="view" id="v-comparar"></section>
+  <!-- ── L'altra cara ── -->
+  <section class="view" id="v-altra"></section>
   <!-- ── Aprendre ── -->
   <section class="view" id="v-aprendre"></section>
 </main>
@@ -283,7 +289,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -505,7 +511,7 @@ function flushCharts() { for (const [id, fn] of pending) { const el = document.g
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
 const VIEWS = { inici: renderInici, inflacio: renderInflacio, sous: renderSous, deute: renderDeute, tipus: renderTipus,
-  creixement: renderCreixement, pais: renderPais, comparar: renderComparar, aprendre: renderAprendre };
+  creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, aprendre: renderAprendre };
 function go(v) {
   if (!VIEWS[v]) v = 'inici';
   view = v;
@@ -978,6 +984,189 @@ function renderPais() {
       <p class="sub">% del PIB. Positiu: ven més a fora del que compra.</p>
       ${chart('c-p4', el => lineChart(el, { title: 'Compte corrent', forecast: Y, fmt: v => sgn(v) + ' %', series: [{ name: 'Compte corrent', color: cs, pts: pts(c, 'cc', 2000) }] }))}
     </div>`}
+  </div>`;
+}
+
+/* ── 🔍 L'altra cara ────────────────────────────────────────────────────────── */
+// Dades oficials que no surten als titulars: habitatge, creació de diners i or.
+let altraPais = lsGet('economia_altra_pais', 'ESP');
+let altraBase = lsGet('economia_altra_base', 2015);
+const A = () => D.altra || {};
+const nomOr = c => ent(c) ? label(c) : (A().orNoms?.[c] ? `${A().orNoms[c][1]} ${A().orNoms[c][0]}` : c);
+const idxBase = (serie, base) => { const b = serie?.[base]; return b ? Object.entries(serie).filter(([a]) => +a >= base).map(([a, v]) => [+a, v / b * 100]) : []; };
+
+// Barres dobles: dues mesures per fila, amb el mateix eix
+function pairBarsHTML(rows, o) {
+  rows = rows.filter(r => r.a != null && r.b != null);
+  if (!rows.length) return '<p class="muted">Sense dades.</p>';
+  const lo = Math.min(0, ...rows.flatMap(r => [r.a, r.b])), hi = Math.max(0, ...rows.flatMap(r => [r.a, r.b]));
+  const P = v => (v - lo) / (hi - lo || 1) * 100;
+  const one = (v, color) => {
+    const a = P(Math.min(0, v)), b = P(Math.max(0, v));
+    return `<span class="track">${lo < 0 ? `<span class="axis0" style="left:${P(0)}%"></span>` : ''}<span class="fill" style="left:${a}%;width:${Math.max(b - a, 0.6)}%;background:${color}"></span></span>`;
+  };
+  return `<div class="legend" style="margin:0 0 8px"><span><i style="background:var(--s2)"></i>${esc(o.la)}</span><span><i style="background:var(--s1)"></i>${esc(o.lb)}</span></div>
+  <div class="bars">${rows.map(r => `<div class="bar pair ${r.c === o.me ? 'me' : ''}" title="${esc(r.name)}: ${esc(o.la)} ${esc(o.fmt(r.a))} · ${esc(o.lb)} ${esc(o.fmt(r.b))}">
+    <span class="n">${esc(r.name)}</span>
+    <span class="dbl">${one(r.a, 'var(--s2)')}${one(r.b, 'var(--s1)')}</span>
+    <span class="val"><span>${esc(o.fmt(r.a))}</span><span class="muted">${esc(o.fmt(r.b))}</span></span></div>`).join('')}</div>`;
+}
+
+function renderAltra() {
+  const X = A();
+  if (!X.habitatge && !X.balanc && !X.diners && !X.or) return '<p class="muted">Aquestes dades encara no s\'han baixat.</p>';
+
+  // 1 · Habitatge vs sous (tots dos descomptant la inflació)
+  const H = X.habitatge || {};
+  const base = altraBase;
+  const both = countries().filter(c => H[c] && ent(c).s.souReal);
+  const comuna = c => Math.min(lastYear(c, 'souReal'), Math.max(...Object.keys(H[c].anual).map(Number)));
+  const canvi = (serie, a) => serie?.[base] && serie?.[a] ? (serie[a] / serie[base] - 1) * 100 : null;
+  const pair = both.map(c => { const a = comuna(c); return { c, name: label(c), a: canvi(H[c].anual, a), b: canvi(ent(c).s.souReal, a), any: a }; })
+    .filter(r => r.a != null && r.b != null).sort((x, y) => (y.a - y.b) - (x.a - x.b));
+  const hp = both.includes(altraPais) ? altraPais : (both[0] || 'ESP');
+  const hr = pair.find(r => r.c === hp);
+  const esforc = hr ? ((1 + hr.a / 100) / (1 + hr.b / 100) - 1) * 100 : null;
+  const pitjor = pair.filter(r => r.a > r.b).length;
+
+  // 2 · Balanç dels bancs centrals en % del PIB
+  const B = X.balanc || {};
+  const balPct = (b, a) => { const v = B[b]?.anual?.[a], p = val(BANK_INFL[b], 'pib', +a); return v && p ? v / p * 100 : null; };
+  const avail = Object.keys(BANKS).filter(b => B[b]);
+  const selB = banks.filter(b => B[b]);
+  const mult = avail.map(b => { const a = B[b].anual; return { c: b, name: BANKS[b], v: a[2007] ? Object.values(a).at(-1) / a[2007] : null }; }).sort((x, y) => y.v - x.v);
+  const eu = B.XM?.anual, euMax = eu ? Object.entries(eu).reduce((m, e) => e[1] > m[1] ? e : m) : null;
+  const euAra = B.XM ? Object.entries(B.XM.mensual).at(-1) : null;
+
+  // 3 · Diners vs economia a la zona euro
+  const M = X.diners;
+  const d0 = 2000;
+  const lastM = M ? Math.max(...Object.keys(M.pib).map(Number)) : null;
+  const ratio = (s, a) => s[a] / s[d0];
+
+  // 4 · Or
+  const O = X.or || {};
+  const ultimOr = c => Math.max(...Object.keys(O[c]).map(Number));
+  const compra = Object.keys(O).map(c => ({ c, name: nomOr(c), v: O[c][2021] != null ? O[c][ultimOr(c)] - O[c][2021] : null }))
+    .filter(r => r.v).sort((a, b) => b.v - a.v);
+  const totalOr = Object.keys(O).map(c => ({ c, name: nomOr(c), v: O[c][ultimOr(c)], color: 'var(--s4)' })).sort((a, b) => b.v - a.v).slice(0, 15);
+  const orAny = Object.keys(O).length ? Math.max(...Object.keys(O).map(ultimOr)) : null;
+  const chn = O.CHN;
+
+  return `
+  <div class="intro">
+    <h2>🔍 L'altra cara dels números</h2>
+    <p class="sub">Les xifres oficials no són falses, però els titulars sovint només n'expliquen una part. Aquí hi ha dades
+    <b>també oficials</b> (BIS, BCE, FMI, OCDE) que ajuden a entendre per què molta gent sent que viu pitjor del que diuen les estadístiques.</p>
+  </div>
+
+  ${hr ? `<div class="tiles">
+    ${tile(`🏠 Pisos a ${esc(ent(hp).nom)}`, sgn(hr.a, 0) + ' %', `preu real, del ${base} al ${hr.any}`)}
+    ${tile('💶 Sous reals', sgn(hr.b, 0) + ' %', 'en el mateix període')}
+    ${tile('⏳ Esforç per comprar un pis', sgn(esforc, 0) + ' %', 'anys de sou necessaris, respecte al ' + base,
+      esforc > 5 ? '<span class="badge bad">▲ més difícil</span>' : esforc < -5 ? '<span class="badge good">▼ més fàcil</span>' : '<span class="badge warn">≈ igual</span>')}
+  </div>` : ''}
+
+  <div class="card">
+    <h3>🏠 1. Els pisos pugen més que els sous</h3>
+    <p class="sub">Tots dos <b>descomptant la inflació</b>. Si la barra taronja supera la blava, comprar un pis costa més anys de feina que el ${base}.
+    Passa en ${pitjor} dels ${pair.length} països amb dades. L'IPC no ho recull: a la zona euro no hi compta el preu de comprar un habitatge.</p>
+    <div class="controls">
+      Des de l'any
+      <select onchange="altraBase=+this.value;lsSet('economia_altra_base',altraBase);renderView()" aria-label="Any de referència">${[2000, 2008, 2010, 2015, 2020].map(a => `<option ${a === base ? 'selected' : ''}>${a}</option>`).join('')}</select>
+      País
+      <select onchange="altraPais=this.value;lsSet('economia_altra_pais',altraPais);renderView()" aria-label="País">${both.map(c => `<option value="${c}" ${c === hp ? 'selected' : ''}>${esc(label(c))}</option>`).join('')}</select>
+    </div>
+    <div class="grid g2">
+      <div>${chart('c-alt-hab', el => lineChart(el, { title: 'Habitatge i sous reals', zero: false, fmt: v => nf(v), ref: { y: 100, label: 'nivell del ' + base },
+        series: [{ name: 'Preu real dels pisos', short: 'Pisos', color: 'var(--s2)', pts: idxBase(H[hp]?.anual, base) },
+                 { name: 'Sou real mitjà', short: 'Sous', color: 'var(--s1)', pts: idxBase(ent(hp).s.souReal, base) }] }))}
+        <p class="muted">${base} = 100. ${hp === 'ESP' && base >= 2008 && base <= 2010 ? 'Compte: el 2008-2010 a Espanya encara no havia esclatat del tot la bombolla immobiliària; prova des del 2015 o del 2000.' : ''}</p></div>
+      <div>${pairBarsHTML(pair, { la: 'Pisos', lb: 'Sous', fmt: v => sgn(v, 0) + ' %', me: hp })}</div>
+    </div>
+  </div>
+
+  ${avail.length ? `<div class="card">
+    <h3>🖨️ 2. La màquina de fer diners</h3>
+    <p class="sub">Quan un banc central "imprimeix diners", en realitat compra deute (sobretot dels estats) i el paga amb diners nous.
+    Tot el que ha comprat queda al seu <b>balanç</b>. Aquí es veu en % del PIB de cada país.</p>
+    ${eu ? `<div class="tiles">
+      ${tile('Eurosistema el 2007', nf(eu[2007] / 1000, 1) + ' bil. $', `${pct(balPct('XM', 2007), 0)} del PIB`)}
+      ${tile(`Màxim (${euMax[0]})`, nf(euMax[1] / 1000, 1) + ' bil. $', `${pct(balPct('XM', euMax[0]), 0)} del PIB`)}
+      ${euAra ? tile(`Ara (${monthLabel(monthX(euAra[0]))})`, nf(euAra[1] / 1000, 1) + ' bil. $', 'des del 2022 en retira', '<span class="badge good">▼ baixant</span>') : ''}
+    </div>` : ''}
+    <div class="chips" style="margin-bottom:12px">${avail.map(b => `<button class="chip ${banks.includes(b) ? 'on' : ''}" onclick="toggleBank('${b}')" ${banks.includes(b) ? `style="color:${col(b, bankCol)}"` : ''}>
+      ${banks.includes(b) ? `<span class="dot" style="background:${col(b, bankCol)}"></span>` : ''}<span style="color:var(--text)">${esc(BANKS[b])}</span></button>`).join('')}</div>
+    ${chart('c-alt-bal', el => lineChart(el, { title: 'Balanç dels bancs centrals', fmt: v => pct(v, 0), tick: v => v + ' %',
+      series: selB.map(b => ({ name: BANKS[b], short: BANKS[b].split(' (')[0].replace(/^Banc (del |de l'|d'|de )?/, ''), color: col(b, bankCol),
+        pts: Object.keys(B[b].anual).map(a => [+a, balPct(b, a)]).filter(p => p[1] != null && p[0] < Y) })) }))}
+    <p class="muted">Els mateixos bancs centrals que tries a la pestanya de tipus d'interès. Balanç a final d'any dividit pel PIB d'aquell any.</p>
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <h3>Quantes vegades més gran que el 2007?</h3>
+        <p class="sub">Balanç actual dividit pel del 2007, abans de la crisi financera.</p>
+        ${barsHTML(mult, { fmt: v => '×' + nf(v, 1), me: 'XM' })}
+      </div>
+      <div class="callout">
+        <b>Per què ho van fer?</b>
+        <p class="sub">2008: salvar els bancs. 2012: salvar l'euro. 2020: pagar la pandèmia. Sense aquestes compres, molts estats
+        no s'haurien pogut finançar a tipus baixos.</p>
+        <b>Quin preu té?</b>
+        <p class="sub">Els diners nous arriben primer als mercats: pugen <b>pisos, borsa i or</b>, i qui ja en tenia es fa més ric.
+        Qui viu del sou ho nota més tard, en forma d'inflació (2021-2023).</p>
+        <p class="muted">Xifres en dòlars: els canvis de valor de les monedes (sobretot el ien) també les mouen. Font: BIS.</p>
+      </div>
+    </div>
+  </div>` : ''}
+
+  ${M ? `<div class="card">
+    <h3>💶 3. Diners vs economia a la zona euro</h3>
+    <p class="sub">Si els diners en circulació (M3: bitllets, comptes corrents i dipòsits) creixen molt més de pressa que l'economia, els diners de més
+    acaben pujant el preu d'alguna cosa: dels productes (inflació) o dels actius (pisos, accions).</p>
+    ${chart('c-alt-m3', el => lineChart(el, { title: 'Diners, economia i preus', zero: false, fmt: v => nf(v, 0), ref: { y: 100, label: 'nivell del ' + d0 },
+      series: [{ name: 'Diners en circulació (M3)', short: 'Diners', color: 'var(--s2)', pts: idxBase(M.m3, d0).filter(p => p[0] <= lastM) },
+               { name: 'Economia en euros (PIB nominal)', short: 'PIB', color: 'var(--s1)', pts: idxBase(M.pib, d0) },
+               { name: 'Preus (IPCH)', short: 'Preus', color: 'var(--s3)', pts: idxBase(M.preus, d0).filter(p => p[0] <= lastM) }] }))}
+    <p class="sub" style="margin-top:8px">Del ${d0} al ${lastM}, els diners s'han multiplicat per <b>${nf(ratio(M.m3, lastM), 1)}</b>, l'economia en euros per
+    <b>${nf(ratio(M.pib, lastM), 1)}</b> i els preus per <b>${nf(ratio(M.preus, lastM), 2)}</b>.</p>
+    <p class="muted">${d0} = 100. Font: BCE (M3 a final d'any, PIB nominal i IPCH).</p>
+  </div>` : ''}
+
+  ${orAny ? `<div class="card">
+    <h3>🥇 4. La febre de l'or dels bancs centrals</h3>
+    <p class="sub">Des del 2022 els bancs centrals compren or al ritme més alt en dècades. Els motius principals:</p>
+    <div class="grid g3" style="margin:6px 0 14px">
+      <div><b>🔒 Les sancions a Rússia</b><p class="sub">El 2022 li van congelar les reserves en dòlars i euros. Molts països van entendre que l'or guardat a casa ningú no el pot bloquejar.</p></div>
+      <div><b>💵 Desconfiança en el dòlar</b><p class="sub">Amb els EUA i altres estats molt endeutats, l'or és una reserva que no depèn de cap govern.</p></div>
+      <div><b>🛡️ Protecció</b><p class="sub">Si les monedes perden valor per la inflació, l'or tendeix a mantenir el seu.</p></div>
+    </div>
+    <div class="grid g2">
+      <div>
+        <h3>Qui n'ha comprat més des del 2021</h3>
+        <p class="sub">Tones afegides a les reserves fins al ${orAny}.${chn?.[2021] && chn?.[orAny] ? ` La Xina declara ${int(chn[orAny] - chn[2021])} t més; molts analistes creuen que en compra més del que diu oficialment.` : ''}</p>
+        ${barsHTML(compra.slice(0, 12), { fmt: v => sgn(v, 0) + ' t' })}
+      </div>
+      <div>
+        <h3>Qui en té més</h3>
+        <p class="sub">Reserves oficials d'or, en tones (${orAny}).</p>
+        ${barsHTML(totalOr, { fmt: v => int(v) + ' t', me: 'ESP' })}
+      </div>
+    </div>
+    <p class="muted">Font: FMI (reserves internacionals). Alguns països no publiquen aquestes dades a l'FMI o no ho fan cada any.</p>
+  </div>` : ''}
+
+  <div class="card">
+    <h3>🧾 5. Per què la inflació oficial pot semblar massa baixa</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div><b>🏠 L'habitatge hi pesa poc</b><p class="sub">A la zona euro l'IPC compta els lloguers, però no el preu de comprar un pis, que és la despesa més gran de moltes famílies.</p></div>
+      <div><b>🔄 La cistella s'adapta</b><p class="sub">Si la carn puja i la gent compra pollastre, l'estadística canvia la cistella. El número surt més baix, però vius pitjor.</p></div>
+      <div><b>📱 "Millores de qualitat"</b><p class="sub">Si un producte val el mateix però és millor, es compta com si hagués baixat de preu.</p></div>
+      <div><b>📈 Els preus no tornen enrere</b><p class="sub">Que la inflació baixi al 2 % vol dir que els preus pugen més a poc a poc, no que baixin. El que va pujar el 2022 es queda.</p></div>
+      <div><b>👪 Cada família té la seva inflació</b><p class="sub">Qui gasta molt en lloguer, menjar i energia (sovint les rendes baixes) pateix més inflació que la mitjana.</p></div>
+      <div><b>🏷️ La "reduflació"</b><p class="sub">El paquet val el mateix però porta menys producte. Les estadístiques ho intenten recollir, però costa.</p></div>
+    </div>
+    <p class="muted" style="margin-top:10px">Hi ha índexs alternatius que diuen que la inflació real és molt més alta, però la majoria no expliquen bé com es calculen.
+    Aquí només fem servir dades oficials, i n'ensenyem la part que no surt als titulars.</p>
   </div>`;
 }
 
