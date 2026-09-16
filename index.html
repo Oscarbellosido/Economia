@@ -281,6 +281,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <button data-v="impostos" onclick="go('impostos')">🧾 Impostos</button>
       <button data-v="deute" onclick="go('deute')">🏦 Deute</button>
       <button data-v="eua" onclick="go('eua')">💵 Deute dels EUA</button>
+      <button data-v="borsa" onclick="go('borsa')">📊 Borsa</button>
       <button data-v="tipus" onclick="go('tipus')">📈 Tipus d'interès</button>
       <button data-v="creixement" onclick="go('creixement')">🏭 Creixement</button>
       <button data-v="pais" onclick="go('pais')">📍 Fitxa de país</button>
@@ -310,6 +311,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
   <section class="view" id="v-deute"></section>
   <!-- ── Deute dels EUA ── -->
   <section class="view" id="v-eua"></section>
+  <!-- ── Borsa ── -->
+  <section class="view" id="v-borsa"></section>
   <!-- ── Tipus ── -->
   <section class="view" id="v-tipus"></section>
   <!-- ── Creixement ── -->
@@ -339,7 +342,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -560,7 +563,7 @@ const chart = (id, fn) => { pending.push([id, fn]); return `<div class="chart" i
 function flushCharts() { for (const [id, fn] of pending) { const el = document.getElementById(id); if (el) fn(el); } }
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
-const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, eua: renderEua, tipus: renderTipus,
+const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, eua: renderEua, borsa: renderBorsa, tipus: renderTipus,
   creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, immigracio: renderImmigracio, pensions: renderPensions, aprendre: renderAprendre };
 function go(v) {
   if (!VIEWS[v]) v = 'resum';
@@ -821,7 +824,7 @@ function renderResum() {
     <p class="sub">1. <b>Deute rècord i cada cop més car.</b> Els estats deuen més que mai i, sense bancs centrals que comprin bons, han de pagar més interessos. <a href="#deute">Deute →</a> · <a href="#eua">Deute dels EUA →</a></p>
     <p class="sub">2. <b>Energia i geopolítica.</b> La crisi d'Ormuz ha tornat a encarir el petroli i frena la baixada de la inflació. <a href="#inici">Actualitat →</a></p>
     <p class="sub">3. <b>Desconfiança en el sistema.</b> Els bancs centrals compren or com mai des de les sancions a Rússia, per no dependre del dòlar. <a href="#altra">L'altra cara →</a></p>
-    <p class="sub">4. <b>Actius cars, sous que no els segueixen.</b> Anys de diners fàcils han pujat pisos i borsa; qui només té el sou s'ha quedat enrere. <a href="#altra">L'altra cara →</a></p>
+    <p class="sub">4. <b>Actius cars, sous que no els segueixen.</b> Anys de diners fàcils han pujat pisos i borsa; qui només té el sou s'ha quedat enrere. <a href="#altra">L'altra cara →</a> · <a href="#borsa">Borsa →</a></p>
     <p class="sub">5. <b>Envelliment i migració.</b> Els països rics necessiten treballadors, i la immigració és alhora una solució i una font de tensió. <a href="#immigracio">Immigració →</a></p>
 
     <p style="margin-top:14px"><b>Tres escenaris per als pròxims anys</b></p>
@@ -1131,6 +1134,7 @@ function renderDeute() {
     ${barsHTML(defs, { fmt: v => sgn(v) + ' %', me: p })}
   </div>
   ${costDeuteHTML(p)}
+  ${llargHTML()}
   <div class="card">
     <h3>És dolent deure molt?</h3>
     <div class="grid g3">
@@ -2181,6 +2185,141 @@ function obraNovaHTML() {
   </div>`;
 }
 
+/* ── 📏 Bons a 2, 10 i 30 anys (dins la pestanya Deute) ───────────────────── */
+const LL_NOM = { USA: '🇺🇸 EUA', JPN: '🇯🇵 Japó', EURO: '🇪🇺 Zona euro (AAA)' };
+const LL_COL = { USA: 'var(--s1)', JPN: 'var(--s3)', EURO: 'var(--s2)' };
+function llargHTML() {
+  const L = D.llarg;
+  if (!L || !Object.keys(L).length) return '';
+  const zones = Object.keys(LL_NOM).filter(z => L[z]);
+  const pts = (z, i) => Object.entries(L[z]).filter(([, v]) => v[i] != null).map(([k, v]) => [monthX(k), v[i]]).sort((a, b) => a[0] - b[0]);
+  const ult = z => { const k = Object.keys(L[z]).filter(k => L[z][k][2] != null).sort().at(-1); return k ? [k, L[z][k]] : null; };
+  const maxDes = (z, i, v, k) => { // des de quin any no era tan alt
+    const ant = Object.entries(L[z]).filter(([kk, x]) => kk < k && x[i] != null && x[i] >= v).map(([kk]) => kk).sort().at(-1);
+    return ant ? `el més alt des del ${monthLabel(monthX(ant))}` : 'el més alt de la sèrie (des del 2000)';
+  };
+  return `
+  <div class="card">
+    <h3>📏 El deute a 30 anys: el termòmetre de la confiança a llarg termini</h3>
+    <p class="sub">Quan un estat s'endeuta a 30 anys, qui li deixa els diners demana un extra per la incertesa: inflació futura, dèficits, política.
+    Si aquest tipus puja encara que el banc central abaixi els seus, és que els mercats <b>desconfien del llarg termini</b>.</p>
+    <div class="tiles">
+      ${zones.map(z => { const u = ult(z); return u ? tile(`${LL_NOM[z]} · bo a 30 anys`, pct(u[1][2], 2), `${esc(monthLabel(monthX(u[0])))} · ${esc(maxDes(z, 2, u[1][2], u[0]))}`) : ''; }).join('')}
+    </div>
+    <h3>Tipus a 30 anys</h3>
+    <p class="sub">Mitjana mensual. El Japó ha passat de gairebé zero a màxims de dècades; els EUA ja paguen més que abans de la crisi del 2008.</p>
+    ${chart('c-30a', el => lineChart(el, { title: 'Bons a 30 anys', months: true, fmt: v => pct(v, 2), tick: v => v + ' %',
+      series: zones.map(z => ({ name: LL_NOM[z], short: LL_NOM[z].split(' ').slice(1).join(' '), color: LL_COL[z], pts: pts(z, 2) })) }))}
+    <h3 style="margin-top:14px">Diferència entre el tipus a 10 anys i a 2 anys</h3>
+    <p class="sub">Normalment prestar a 10 anys paga més que a 2 (la línia és positiva). Quan es torna <b>negativa</b> ("corba invertida"), el mercat espera
+    que el banc central hagi d'abaixar tipus perquè ve una desacceleració; ha passat abans de moltes recessions. Quan torna a pujar ràpid pot voler dir
+    més por a la inflació i al deute.</p>
+    ${chart('c-pendent', el => lineChart(el, { title: 'Pendent de la corba', months: true, fmt: v => sgn(v, 2) + ' punts', tick: v => nf(v, 1),
+      series: zones.map(z => ({ name: LL_NOM[z], short: LL_NOM[z].split(' ').slice(1).join(' '), color: LL_COL[z],
+        pts: Object.entries(L[z]).filter(([, v]) => v[0] != null && v[1] != null).map(([k, v]) => [monthX(k), v[1] - v[0]]).sort((a, b) => a[0] - b[0]) })) }))}
+    <p class="muted">Fonts: Tresor dels EUA, Ministeri d'Hisenda del Japó i BCE (bons de la zona euro amb qualificació AAA).</p>
+  </div>`;
+}
+
+/* ── 📊 Borsa ───────────────────────────────────────────────────────────────── */
+let borsaPais = lsGet('economia_borsapais', 'USA');
+function renderBorsa() {
+  const B = D.borsa || {};
+  if (!B.index && !B.capPib) return '<p class="muted">Aquestes dades encara no s\'han baixat.</p>';
+  const I = B.index || {}, C = B.capPib || {};
+  const ultI = c => { const k = Object.keys(I[c] || {}).sort().at(-1); return k ? [k, I[c][k]] : null; };
+  const mitjanaAny = (c, a) => { const v = Object.entries(I[c] || {}).filter(([k]) => k.startsWith(a + '-')).map(([, x]) => x); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+  const paisos = countries().filter(c => I[c]);
+  const p = paisos.includes(borsaPais) ? borsaPais : 'USA';
+  const u = ultI(p);
+  const capU = c => { const ks = Object.keys(C[c] || {}); if (!ks.length) return null; const a = Math.max(...ks.map(Number)); return [a, C[c][a]]; };
+  const cUSA = capU('USA');
+  const maxUSA = C.USA ? Object.entries(C.USA).reduce((m, e) => e[1] > m[1] ? e : m) : null;
+  const dot = C.USA?.[2000];
+  // borsa vs economia vs sous (2015 = 100)
+  const any0 = 2015;
+  const serieAny = (f) => { const out = []; for (let a = any0; a <= Y; a++) { const v = f(a); if (v != null) out.push([a, v]); } return out; };
+  const bI = serieAny(a => { const v = mitjanaAny(p, a), b = mitjanaAny(p, any0); return v && b ? v / b * 100 : null; });
+  const acumPib = a => { const b = val(p, 'pib', any0), v = val(p, 'pib', a); return b && v ? v / b * 100 : null; }; // PIB en dòlars corrents
+  const souN = ent(p).s.souNom;
+  const bS = souN ? serieAny(a => souN[a] && souN[any0] ? souN[a] / souN[any0] * 100 : null) : [];
+  const creixBorsa = (c) => { const v = ultI(c), b = mitjanaAny(c, any0); return v && b ? (v[1] / b - 1) * 100 : null; };
+  const ranking = paisos.map(c => ({ c, name: label(c), v: creixBorsa(c) })).filter(r => r.v != null).sort((a, b) => b.v - a.v);
+  const capRank = countries().map(c => ({ c, name: label(c), v: capU(c)?.[1] })).filter(r => r.v != null).sort((a, b) => b.v - a.v);
+
+  return `
+  <div class="intro">
+    <h2>📊 Borsa: màxims, concentració i la IA</h2>
+    <p class="sub">La borsa ha pujat molt més que l'economia i que els sous, sobretot als EUA i sobretot per unes poques empreses tecnològiques.
+    Aquí es veu quant, i per què alguns economistes parlen de bombolla. <b>No és cap consell d'inversió.</b></p>
+    <div class="controls">País:
+      <select onchange="borsaPais=this.value;lsSet('economia_borsapais',borsaPais);renderView()" aria-label="País">${paisos.map(c => `<option value="${c}" ${c === p ? 'selected' : ''}>${esc(label(c))}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="tiles">
+    ${u ? tile(`📈 Borsa · ${esc(ent(p).nom)}`, sgn(creixBorsa(p), 0) + ' %', `des de la mitjana del ${any0} (${esc(monthLabel(monthX(u[0])))})`) : ''}
+    ${cUSA ? tile('🇺🇸 Valor de la borsa dels EUA', pct(cUSA[1], 0), `del PIB (${cUSA[0]})`, dot && cUSA[1] > dot ? '<span class="badge bad">▲ per sobre del 2000</span>' : '') : ''}
+    ${dot ? tile('El 2000 (bombolla puntcom)', pct(dot, 0), 'del PIB dels EUA') : ''}
+    ${maxUSA ? tile('Màxim de la sèrie', pct(maxUSA[1], 0), `el ${maxUSA[0]}`) : ''}
+  </div>
+
+  <div class="card">
+    <h3>Índex de la borsa (2015 = 100)</h3>
+    <p class="sub">Mitjana mensual dels preus de les accions de cada país (OCDE). No inclou els dividends.</p>
+    ${chipsHTML(c => !!I[c])}
+    ${chart('c-borsa', el => lineChart(el, { title: 'Índex borsari', months: true, zero: false, fmt: v => nf(v, 0), ref: { y: 100, label: 'nivell del 2015' },
+      series: sel.filter(c => I[c]).map(c => ({ name: label(c), short: ent(c).nom, color: col(c), pts: Object.entries(I[c]).map(([k, v]) => [monthX(k), v]).sort((a, b) => a[0] - b[0]) })) }))}
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>Quant ha pujat la borsa des del ${any0}</h3>
+      <p class="sub">Del nivell mitjà del ${any0} a l'últim mes, en moneda de cada país i sense descomptar la inflació.</p>
+      ${barsHTML(ranking, { fmt: v => sgn(v, 0) + ' %', me: p })}
+    </div>
+    <div class="card">
+      <h3>Valor de la borsa en % del PIB</h3>
+      <p class="sub">Valor de totes les empreses cotitzades del país dividit pel seu PIB (Banc Mundial). És l'"indicador Buffett": com més alt, més cara està la borsa respecte a l'economia real.</p>
+      ${barsHTML(capRank, { fmt: v => pct(v, 0), me: p })}
+    </div>
+  </div>
+
+  ${C.USA ? `<div class="card">
+    <h3>🇺🇸 L'"indicador Buffett" als EUA</h3>
+    <p class="sub">Valor de la borsa dels EUA en % del PIB. Les dues puntes anteriors van acabar malament: el 2000 (puntcom) i el 2021 (diners fàcils de la pandèmia).</p>
+    ${chart('c-buffett', el => lineChart(el, { title: 'Valor de la borsa en % del PIB', fmt: v => pct(v, 0), tick: v => v + ' %', ref: dot ? { y: dot, label: 'nivell del 2000' } : null,
+      series: ['USA', 'JPN', 'GBR', 'ESP'].filter(c => C[c]).map((c, i) => ({ name: label(c), short: ent(c).nom, color: `var(--s${i + 1})`, pts: Object.entries(C[c]).map(([a, v]) => [+a, v]) })) }))}
+  </div>` : ''}
+
+  ${bI.length > 1 ? `<div class="card">
+    <h3>Borsa, economia i sous · ${esc(ent(p).nom)} (${any0} = 100)</h3>
+    <p class="sub">Si la borsa puja molt més que l'economia i que els sous, qui té accions s'enriqueix més de pressa que qui viu del sou. És la "inflació d'actius" de la qual parlen tant Marc Vidal com Juan Ramón Rallo.</p>
+    ${chart('c-borsa-pib', el => lineChart(el, { title: 'Borsa, PIB i sous', zero: false, fmt: v => nf(v, 0), ref: { y: 100, label: 'nivell del ' + any0 },
+      series: [{ name: 'Borsa (mitjana anual)', short: 'Borsa', color: 'var(--s2)', pts: bI },
+               { name: 'PIB en dòlars corrents (FMI)', short: 'PIB', color: 'var(--s1)', pts: serieAny(acumPib).filter(x => x[0] <= Y) },
+               ...(bS.length > 1 ? [{ name: 'Sou mitjà en moneda del país (OCDE)', short: 'Sous', color: 'var(--s3)', pts: bS }] : [])] }))}
+    <p class="muted">El PIB està en dòlars, i per als països que no fan servir el dòlar el tipus de canvi també el mou. L'any en curs de la borsa és la mitjana dels mesos que hi ha.</p>
+  </div>` : ''}
+
+  <div class="card">
+    <h3>🤖 Concentració i IA: per què es parla de bombolla</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div><b>🎯 Pocs valors, molt pes</b><p class="sub">Els grans índexs pesen cada empresa pel seu valor. Quan unes poques tecnològiques valen molt, un fons indexat
+      "diversificat" depèn sobretot d'elles. Marc Vidal cita que la tecnologia ja pesa prop del 39 % de l'S&P 500, per sobre del màxim de la bombolla
+      puntcom, i que la correlació entre l'S&P 500 i el Nasdaq va tocar 0,98 el març del 2026.</p></div>
+      <div><b>🏗️ La inversió en IA necessita diners</b><p class="sub">Els centres de dades costen centenars de milers de milions. Juan Ramón Rallo explica que aquesta
+      demanda de finançament competeix amb els dèficits dels estats i empeny a l'alça els tipus a llarg termini (el bo dels EUA a 30 anys va arribar al
+      5,22 % aquest estiu), cosa que alhora pot frenar la mateixa inversió en IA.</p></div>
+      <div><b>🏦 L'avís del BIS</b><p class="sub">El Banc de Pagaments Internacionals (el "banc dels bancs centrals") ha alertat del risc que la valoració de les empreses
+      d'IA sigui una bombolla que pugui punxar.</p></div>
+      <div><b>⚖️ L'altra cara</b><p class="sub">No totes les pujades són bombolla: aquestes empreses tenen beneficis reals i molt alts. La pregunta és si el que es paga
+      avui ja descompta massa creixement futur. Ningú no sap quan ni si hi haurà una correcció.</p></div>
+    </div>
+    <p class="muted" style="margin-top:10px">Les xifres de concentració (39 %, 0,98) són les que citen els divulgadors; l'app no en té una font oficial i oberta per verificar-les.
+    La resta de dades d'aquesta pestanya són de l'OCDE, el Banc Mundial, l'FMI i el Tresor dels EUA. Res d'això és un consell d'inversió.</p>
+  </div>`;
+}
+
 /* ── 📊 Comparar ────────────────────────────────────────────────────────────── */
 const COLS = [
   ['pib', 'PIB', money, null], ['creix', 'Creix.', v => sgn(v) + ' %', null], ['infl', 'Inflació', v => pct(v), [5]],
@@ -2256,6 +2395,9 @@ function renderAprendre() {
     ['Taxa de dependència', 'Quantes persones grans (65 anys o més) hi ha per cada 100 en edat de treballar (15-64). Com més alta, més pesen les pensions sobre qui treballa.'],
     ['Sistema de repartiment', 'Les pensions d\'avui es paguen amb les cotitzacions dels treballadors d\'avui, no amb el que cada jubilat va estalviar.'],
     ['Tipus de canvi efectiu', 'La força d\'una moneda davant d\'una cistella de monedes dels seus socis comercials, no només davant d\'una.'],
+    ['Indicador Buffett', 'El valor de totes les empreses cotitzades d\'un país dividit pel seu PIB. Si és molt alt, la borsa està cara respecte a l\'economia real.'],
+    ['Fons indexat', 'Un fons que compra totes les accions d\'un índex (com l\'S&P 500) en proporció al seu valor. Si poques empreses valen molt, el fons depèn sobretot d\'elles.'],
+    ['Corba de tipus', 'Els tipus d\'interès que paga un estat a diferents terminis (2, 10, 30 anys). Si els de curt termini superen els de llarg, es diu que la corba està invertida.'],
     ['Remeses', 'Diners que els immigrants envien a les seves famílies al país d\'origen.'],
     ['Reserves d\'or', 'L\'or que guarden els bancs centrals. No depèn de cap altre país ni es pot congelar si està guardat a casa, per això se\'n compra més des del 2022.'],
   ];

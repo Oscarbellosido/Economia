@@ -266,19 +266,88 @@ async function main() {
   // ════ El preu del deute i els impostos sobre el sou ════
   out.fiscal = {};
 
-  // ── OCDE: rendiment del bo públic a 10 anys (mensual) ──
+  // ── OCDE: rendiment del bo públic a 10 anys i índex de la borsa (mensual, una sola consulta) ──
+  out.borsa = {};
   if (!process.env.SENSE_OCDE) try {
-    const url = `https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_FINMARK,4.0/.M.IRLT.......?startPeriod=${ANY0}-01&format=csvfile`;
-    const bons = {};
+    const url = `https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_FINMARK,4.0/.M.IRLT+SHARE.......?startPeriod=${ANY0}-01&format=csvfile`;
+    const bons = {}, index = {};
     for (const f of csv(await get(url, 'text', 2, 20000))) {
       const k = f.REF_AREA === 'EA20' ? 'EURO' : f.REF_AREA;
       if (!(k in PAISOS || k === 'EURO') || f.OBS_VALUE === '' || f.OBS_VALUE === 'NaN') continue;
-      (bons[k] ||= {})[f.TIME_PERIOD] = r1(+f.OBS_VALUE);
+      if (f.MEASURE === 'IRLT') (bons[k] ||= {})[f.TIME_PERIOD] = r1(+f.OBS_VALUE);
+      else if (f.MEASURE === 'SHARE') (index[k] ||= {})[f.TIME_PERIOD] = r1(+f.OBS_VALUE);
     }
     out.fiscal.bons = bons;
     out.fonts.bons = { font: 'OCDE · Long-term interest rates (bons a 10 anys)', unitat: '% anual, mitjana del mes' };
-    console.log('OCDE bons ok', Object.keys(bons).length, 'països');
+    if (Object.keys(index).length) {
+      out.borsa.index = index;
+      out.fonts.borsa = { font: 'OCDE · Share prices', unitat: 'Índex 2015 = 100' };
+    }
+    console.log('OCDE bons ok', Object.keys(bons).length, 'països · borsa', Object.keys(index).length);
   } catch (e) { console.warn('OCDE bons ha fallat:', e.message); }
+
+  // ── Banc Mundial: valor de les empreses cotitzades en % del PIB ──
+  try {
+    const j = await get(`https://api.worldbank.org/v2/country/${Object.keys(PAISOS).join(';')}/indicator/CM.MKT.LCAP.GD.ZS?format=json&per_page=5000&date=${ANY0}:2030`);
+    const cap = {};
+    for (const r of j[1] || []) if (r.value != null) (cap[r.countryiso3code] ||= {})[r.date] = r1(r.value);
+    out.borsa.capPib = cap;
+    out.fonts.borsaCap = { font: 'Banc Mundial · Market capitalization of listed domestic companies', unitat: '% del PIB' };
+    console.log('Banc Mundial borsa ok', Object.keys(cap).length);
+  } catch (e) { console.warn('Banc Mundial borsa ha fallat:', e.message); }
+
+  // ── Tipus a 2, 10 i 30 anys: EUA (Tresor), Japó (Ministeri d'Hisenda) i zona euro (BCE) ──
+  out.llarg = {};
+  const mitjanaMes = (llista) => { // [[AAAA-MM-DD, [v2, v10, v30]]] → {AAAA-MM: [m2, m10, m30]}
+    const g = {};
+    for (const [d, vs] of llista) { const k = d.slice(0, 7); const x = (g[k] ||= vs.map(() => [0, 0])); vs.forEach((v, i) => { if (v != null && !isNaN(v)) { x[i][0] += v; x[i][1]++; } }); }
+    return Object.fromEntries(Object.entries(g).map(([k, x]) => [k, x.map(([s, n]) => n ? r1(s / n) : null)]));
+  };
+  try {
+    // Cada any és un fitxer que triga uns 18 s: es reaprofiten els anys tancats de la descàrrega anterior
+    let previ = {};
+    try { previ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'dades.json'), 'utf8')).llarg?.USA || {}; } catch { }
+    const anyActual = new Date().getFullYear();
+    const files = [], guardats = {};
+    for (let a = ANY0; a <= anyActual; a++) {
+      const mesos = Object.keys(previ).filter(k => k.startsWith(a + '-'));
+      if (a < anyActual - 1 && mesos.length === 12) { for (const k of mesos) guardats[k] = previ[k]; continue; }
+      const t = await get(`https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/${a}/all?type=daily_treasury_yield_curve&field_tdr_date_value=${a}&page&_format=csv`, 'text');
+      for (const f of csv(t)) {
+        const [m, d, y] = f.Date.split('/');
+        const n = k => f[k] === '' || f[k] == null ? null : +f[k];
+        files.push([`${y}-${m}-${d}`, [n('2 Yr'), n('10 Yr'), n('30 Yr')]]);
+      }
+    }
+    out.llarg.USA = Object.fromEntries(Object.entries({ ...guardats, ...mitjanaMes(files) }).sort());
+    console.log('Tresor corba ok', Object.keys(out.llarg.USA).length, 'mesos');
+  } catch (e) { console.warn('Tresor corba ha fallat:', e.message); }
+  try {
+    const base = 'https://www.mof.go.jp/english/policy/jgbs/reference/interest_rate/';
+    const files = [];
+    for (const t of [await get(base + 'historical/jgbcme_all.csv', 'text'), await get(base + 'jgbcme.csv', 'text')]) {
+      const linies = t.split(/\r?\n/);
+      const cap = linies.find(l => l.startsWith('Date,')).split(',');
+      const i2 = cap.indexOf('2Y'), i10 = cap.indexOf('10Y'), i30 = cap.indexOf('30Y');
+      for (const l of linies) {
+        const c = l.split(','); const m = c[0].match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+        if (!m || +m[1] < ANY0) continue;
+        const n = v => v === '-' || v === '' || v == null ? null : +v;
+        files.push([`${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`, [n(c[i2]), n(c[i10]), n(c[i30])]]);
+      }
+    }
+    out.llarg.JPN = mitjanaMes(files);
+    console.log('MoF Japó ok', Object.keys(out.llarg.JPN).length, 'mesos');
+  } catch (e) { console.warn('MoF Japó ha fallat:', e.message); }
+  try {
+    const t = await get(`https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y+SR_10Y+SR_30Y?startPeriod=2004-09-01&format=csvdata`, 'text');
+    const dies = {};
+    const pos = { SR_2Y: 0, SR_10Y: 1, SR_30Y: 2 };
+    for (const f of csv(t)) if (f.OBS_VALUE !== '') ((dies[f.TIME_PERIOD] ||= [null, null, null])[pos[f.DATA_TYPE_FM]] = +f.OBS_VALUE);
+    out.llarg.EURO = mitjanaMes(Object.entries(dies));
+    console.log('BCE corba ok', Object.keys(out.llarg.EURO).length, 'mesos');
+  } catch (e) { console.warn('BCE corba ha fallat:', e.message); }
+  out.fonts.llarg = { font: 'Tresor dels EUA · Ministeri d\'Hisenda del Japó · BCE (corba AAA de la zona euro)', unitat: '% anual, mitjana del mes' };
 
   // ── OCDE Taxing Wages: impostos d'un treballador sense fills que cobra el sou mitjà ──
   if (!process.env.SENSE_OCDE) try {
@@ -501,6 +570,10 @@ async function main() {
     for (const c of ['souReal', 'souNom']) if (!out.fonts[c] && vell.fonts[c]) out.fonts[c] = vell.fonts[c];
     for (const c of ['habitatge', 'balanc', 'diners', 'or']) if (!out.altra[c] && vell.altra?.[c]) { out.altra[c] = vell.altra[c]; out.fonts[c] = vell.fonts[c]; }
     if (!out.altra.orNoms && vell.altra?.orNoms) out.altra.orNoms = vell.altra.orNoms;
+    for (const c of ['index', 'capPib']) if (!out.borsa[c] && vell.borsa?.[c]) out.borsa[c] = vell.borsa[c];
+    if (!out.fonts.borsa && vell.fonts.borsa) out.fonts.borsa = vell.fonts.borsa;
+    if (!out.fonts.borsaCap && vell.fonts.borsaCap) out.fonts.borsaCap = vell.fonts.borsaCap;
+    for (const c of ['USA', 'JPN', 'EURO']) if (!out.llarg[c] && vell.llarg?.[c]) out.llarg[c] = vell.llarg[c];
     if (!out.demo.eu && vell.demo?.eu) { out.demo.eu = vell.demo.eu; out.fonts.demo = vell.fonts.demo; }
     for (const c of ['eer', 'eur']) if (!out.divises[c] && vell.divises?.[c]) { out.divises[c] = vell.divises[c]; out.fonts.divises = vell.fonts.divises; }
     for (const [c, f] of [['deute', 'euaDeute'], ['deuteUltim', null], ['tenidors', 'euaTic'], ['rrp', 'euaRrp'], ['rrpUltim', null], ['rrpMax', null]])

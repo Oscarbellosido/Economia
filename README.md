@@ -33,8 +33,9 @@ Economia/
 | 🛒 **Inflació** | Inflació anual per país des del 2000, quant han pujat els preus des del 2020 i una calculadora de "què valen els teus diners" |
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
 | 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal i el sou brut i net descomptant la inflació |
-| 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses), dèficit i **quant costa**: bons a 10 anys, prima de risc i interessos pagats |
+| 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses), dèficit i **quant costa**: bons a 10 i 30 anys, corba de tipus, prima de risc i interessos pagats |
 | 💵 **Deute dels EUA** | El deute dels EUA (dada diària), qui té els seus bons a l'estranger (governs vs inversors privats), el "coixí" de liquiditat de la Fed que s'ha buidat i com s'encalla el sistema (2019, Londres 2022, Japó 2024) |
+| 📊 **Borsa** | Índex de la borsa de cada país, valor de la borsa en % del PIB ("indicador Buffett"), borsa vs economia i sous, i per què es parla de bombolla i de concentració en la IA |
 | 📈 **Tipus d'interès** | Els tipus dels bancs centrals des del 2007 i els tipus reals (tipus menys inflació) |
 | 🏭 **Creixement** | Creixement del PIB, atur i riquesa per habitant |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
@@ -64,6 +65,8 @@ Totes són oficials i gratuïtes, sense clau:
 | Balanç dels bancs centrals | **BIS** — Central bank total assets |
 | Diners en circulació (M3), PIB nominal i preus de la zona euro | **BCE** (`data-api.ecb.europa.eu`) |
 | Demografia, projeccions, pensions i llicències d'habitatge | **Eurostat** |
+| Bons a 2, 10 i 30 anys | **Tresor dels EUA**, **Ministeri d'Hisenda del Japó**, **BCE** |
+| Índex borsari i valor de la borsa | **OCDE** (share prices) i **Banc Mundial** (capitalització en % del PIB) |
 | Tipus de canvi | **BIS** (efectius) i **BCE** (euro) |
 | Reserves d'or (anuals i mensuals) | **FMI** — International Reserves (`api.imf.org`) |
 | Deute dels EUA | **Tresor dels EUA** — Debt to the Penny (`api.fiscaldata.treasury.gov`) |

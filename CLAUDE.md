@@ -22,7 +22,10 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ BIS SDMX         → altra.habitatge[ISO3], altra.balanc[codi BIS]   (pestanya "L'altra cara")
   ├─ BCE              → altra.diners {m3, pib, preus}
   ├─ FMI IRFCL        → altra.or[ISO3][any] en tones (+ altra.orNoms per als països extra)
-  ├─ OCDE FINMARK     → fiscal.bons[ISO3|EURO]["AAAA-MM"]   (bons a 10 anys, pestanya Deute)
+  ├─ OCDE FINMARK     → fiscal.bons[ISO3|EURO]["AAAA-MM"] (IRLT) i borsa.index (SHARE, 2015=100), una sola consulta
+  ├─ Banc Mundial     → borsa.capPib[ISO3][any] (capitalització en % del PIB)
+  ├─ Tresor/MoF/BCE   → llarg[USA|JPN|EURO]["AAAA-MM"] = [2 anys, 10 anys, 30 anys]
+  │                     (el Tresor és un fitxer per any de ~18 s: es reaprofiten els anys tancats de dades.json)
   ├─ OCDE Taxing Wages→ fiscal.impostos[ISO3].{irpf, irpfSS, cunya, brut, net}  (pestanya Impostos)
   ├─ Tresor EUA       → eua.deute["AAAA-MM"] = [total, en mans del públic], eua.deuteUltim
   ├─ Tresor TIC       → eua.tenidors[país|TOTAL|OFICIAL]["AAAA-MM"]  (mfhhis01.txt històric + slt_table5.txt recent)
@@ -47,6 +50,9 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   Retorna HTTP 500 a molts `fetch` de Node (sobretot des de GitHub Actions) però respon bé a `curl`:
   per això `get()` acaba provant amb `curl` quan fetch falla (comprovat el 2026-09-16).
   També té un **límit de consultes per hora (HTTP 429)**: no facis proves repetides ni consultes país per país.
+- FRED (Fed de St. Louis) no respon des d'aquí: no el facis servir.
+- Les xifres de concentració de la borsa (pes de la tecnologia a l'S&P 500) no tenen font oficial oberta: a la pestanya Borsa
+  surten citades com a xifres dels divulgadors.
 - Interessos del deute = `primari` (FMI Fiscal Monitor) − `deficit` (WEO). Són interessos **nets**.
 - La prima de risc es calcula sempre amb el **mateix mes** per al país i per a Alemanya.
 - Si una font falla, el script conserva la versió anterior d'aquella font. Si l'FMI arriba
