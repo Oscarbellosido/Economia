@@ -4,6 +4,7 @@
 // BIS (tipus d'interès, habitatge i balanç dels bancs centrals), BCE (diners en circulació),
 // OCDE (bons a 10 anys, impostos sobre el sou), Eurostat, Banc Mundial i Idescat (immigració).
 // Per provar-lo sense gastar consultes de l'OCDE (té límit per hora): SENSE_OCDE=1 node scripts/actualitza.js
+// (conserva les dades de l'OCDE de l'última descàrrega).
 // L'app llegeix només dades.json: així no depèn del CORS de cap servidor i funciona sense connexió.
 
 const fs = require('fs');
@@ -266,7 +267,7 @@ async function main() {
   out.fiscal = {};
 
   // ── OCDE: rendiment del bo públic a 10 anys (mensual) ──
-  try {
+  if (!process.env.SENSE_OCDE) try {
     const url = `https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_FINMARK,4.0/.M.IRLT.......?startPeriod=${ANY0}-01&format=csvfile`;
     const bons = {};
     for (const f of csv(await get(url, 'text', 2, 20000))) {
@@ -280,7 +281,7 @@ async function main() {
   } catch (e) { console.warn('OCDE bons ha fallat:', e.message); }
 
   // ── OCDE Taxing Wages: impostos d'un treballador sense fills que cobra el sou mitjà ──
-  try {
+  if (!process.env.SENSE_OCDE) try {
     const url = `https://sdmx.oecd.org/public/rest/data/OECD.CTP.TPS,DSD_TAX_WAGES_COMP@DF_TW_COMP,2.1/.AV_ITR+NPATR+AV_TW+GEBT+NIAT..S_C0.AW100.....?startPeriod=${ANY0}&format=csvfile`;
     const CLAU = { AV_ITR: 'irpf', NPATR: 'irpfSS', AV_TW: 'cunya', GEBT: 'brut', NIAT: 'net' };
     const tw = {};
@@ -294,6 +295,83 @@ async function main() {
     out.fonts.impostos = { font: 'OCDE · Taxing Wages (treballador sense fills, sou mitjà)', unitat: '% del sou brut o del cost laboral' };
     console.log('OCDE impostos ok', Object.keys(tw).length, 'països');
   } catch (e) { console.warn('OCDE impostos ha fallat:', e.message); }
+
+  // ════ El deute dels EUA i la "fontaneria" del sistema ════
+  out.eua = {};
+
+  // ── Tresor dels EUA: deute total (dada diària → últim dia de cada mes) ──
+  try {
+    const u = `https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?fields=record_date,tot_pub_debt_out_amt,debt_held_public_amt&filter=record_date:gte:${ANY0}-01-01&sort=record_date&page[size]=10000`;
+    const rows = (await get(u)).data;
+    const deute = {};
+    for (const r of rows) deute[r.record_date.slice(0, 7)] = [r1(+r.tot_pub_debt_out_amt / 1e9), r1(+r.debt_held_public_amt / 1e9)];
+    const ult = rows[rows.length - 1];
+    out.eua.deute = deute;
+    out.eua.deuteUltim = [ult.record_date, r1(+ult.tot_pub_debt_out_amt / 1e9)];
+    out.fonts.euaDeute = { font: 'Tresor dels EUA · Debt to the Penny', unitat: 'Milers de milions de dòlars' };
+    console.log('Tresor deute ok', ult.record_date);
+  } catch (e) { console.warn('Tresor deute ha fallat:', e.message); }
+
+  // ── Tresor dels EUA (TIC): qui té bons del Tresor a l'estranger ──
+  try {
+    const base = 'https://ticdata.treasury.gov/resource-center/data-chart-center/tic/Documents/';
+    const MES = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+    const NOMS = { 'Grand Total': 'TOTAL', 'For. Official': 'OFICIAL', 'Of Which: Foreign Official': 'OFICIAL' };
+    const tenidors = {};
+    const llegeix = text => {
+      let periodes = null, mesos = null;
+      for (const brut of text.split(/\r?\n/)) {
+        const c = brut.split('\t').map(x => x.trim().replace(/^"|"$/g, ''));
+        if (c.slice(1).filter(Boolean).every(x => MES[x]) && c.slice(1).some(Boolean)) { mesos = c; continue; }
+        if (c[0] === 'Country') {
+          periodes = c.map((x, i) => /^\d{4}-\d{2}$/.test(x) ? x : (/^\d{4}$/.test(x) && mesos?.[i] ? `${x}-${MES[mesos[i]]}` : null));
+          continue;
+        }
+        if (!periodes || !c[0] || c[0].startsWith('-')) continue;
+        const nom = NOMS[c[0]] || c[0];
+        if (/^(Of Which|Notes|The data|Estimated|individual|overseas|International|as reported|and on)/.test(nom)) continue;
+        for (let i = 1; i < c.length; i++) if (periodes[i] && c[i] !== '' && !isNaN(+c[i])) (tenidors[nom] ||= {})[periodes[i]] = +c[i];
+      }
+    };
+    llegeix(await get(base + 'mfhhis01.txt', 'text'));   // històric
+    llegeix(await get(base + 'slt_table5.txt', 'text'));  // últims 13 mesos (mana sobre l'històric)
+    // Només els que avui tenen més de 100.000 milions, més els totals
+    const ultimMes = Object.keys(tenidors.TOTAL || {}).sort().at(-1);
+    out.eua.tenidors = Object.fromEntries(Object.entries(tenidors)
+      .filter(([k, s]) => k === 'TOTAL' || k === 'OFICIAL' || (k !== 'All Other' && (s[ultimMes] || 0) >= 100)));
+    out.fonts.euaTic = { font: 'Tresor dels EUA · Treasury International Capital (TIC)', unitat: 'Milers de milions de dòlars' };
+    console.log('Tresor TIC ok', Object.keys(out.eua.tenidors).length, 'tenidors fins a', ultimMes);
+  } catch (e) { console.warn('Tresor TIC ha fallat:', e.message); }
+
+  // ── Fed de Nova York: diners aparcats al repo invers (el "coixí" de liquiditat) ──
+  try {
+    const avui = new Date().toISOString().slice(0, 10);
+    const j = await get(`https://markets.newyorkfed.org/api/rp/reverserepo/propositions/search.json?startDate=2013-09-01&endDate=${avui}`);
+    const ops = (j.repo?.operations || []).filter(o => o.totalAmtAccepted != null).sort((a, b) => a.operationDate < b.operationDate ? -1 : 1);
+    const mes = {};
+    for (const o of ops) { const k = o.operationDate.slice(0, 7); (mes[k] ||= []).push(o.totalAmtAccepted / 1e9); }
+    out.eua.rrp = Object.fromEntries(Object.entries(mes).map(([k, v]) => [k, r1(v.reduce((s, x) => s + x, 0) / v.length)]));
+    const u = ops[ops.length - 1], mx = ops.reduce((m, o) => o.totalAmtAccepted > m.totalAmtAccepted ? o : m, ops[0]);
+    out.eua.rrpUltim = [u.operationDate, r1(u.totalAmtAccepted / 1e9)];
+    out.eua.rrpMax = [mx.operationDate, r1(mx.totalAmtAccepted / 1e9)];
+    out.fonts.euaRrp = { font: 'Fed de Nova York · Reverse repo operations', unitat: 'Milers de milions de dòlars (mitjana del mes)' };
+    console.log('Fed RRP ok', u.operationDate);
+  } catch (e) { console.warn('Fed RRP ha fallat:', e.message); }
+
+  // ── FMI: or mensual des del 2021, per veure les compres i vendes de l'any en curs ──
+  try {
+    const llista = [...Object.keys(PAISOS), ...Object.keys(OR_EXTRA)].join('+');
+    const text = await get(`https://api.imf.org/external/sdmx/2.1/data/IMF.STA,IRFCL/${llista}.IRFCLDT1_IRFCL56V_FTO.S1XS1311.M?startPeriod=2021-01`, 'text', 3, 5000,
+      { Accept: 'application/vnd.sdmx.data+csv;version=1.0.0' });
+    const orM = {};
+    for (const f of csv(text)) {
+      if (f.OBS_VALUE === '') continue;
+      const t = +f.OBS_VALUE / 1e6 * 31.1035;
+      if (t > 0 && t < 10000) (orM[f.COUNTRY] ||= {})[f.TIME_PERIOD.replace('-M', '-')] = Math.round(t);
+    }
+    out.altra.orMensual = orM;
+    console.log('FMI or mensual ok', Object.keys(orM).length, 'països');
+  } catch (e) { console.warn('FMI or mensual ha fallat:', e.message); }
 
   // ════ Immigració ════
   out.immi = {};
@@ -385,6 +463,9 @@ async function main() {
     for (const c of ['souReal', 'souNom']) if (!out.fonts[c] && vell.fonts[c]) out.fonts[c] = vell.fonts[c];
     for (const c of ['habitatge', 'balanc', 'diners', 'or']) if (!out.altra[c] && vell.altra?.[c]) { out.altra[c] = vell.altra[c]; out.fonts[c] = vell.fonts[c]; }
     if (!out.altra.orNoms && vell.altra?.orNoms) out.altra.orNoms = vell.altra.orNoms;
+    for (const [c, f] of [['deute', 'euaDeute'], ['deuteUltim', null], ['tenidors', 'euaTic'], ['rrp', 'euaRrp'], ['rrpUltim', null], ['rrpMax', null]])
+      if (!out.eua[c] && vell.eua?.[c]) { out.eua[c] = vell.eua[c]; if (f) out.fonts[f] = vell.fonts[f]; }
+    if (!out.altra.orMensual && vell.altra?.orMensual) out.altra.orMensual = vell.altra.orMensual;
     for (const [c, f] of [['bons', 'bons'], ['impostos', 'impostos']]) if (!out.fiscal[c] && vell.fiscal?.[c]) { out.fiscal[c] = vell.fiscal[c]; out.fonts[f] = vell.fonts[f]; }
     for (const [c, f] of [['eu', 'immiEU'], ['mon', 'immiMon'], ['cat', 'immiCat']]) if (!out.immi[c] && vell.immi?.[c]) { out.immi[c] = vell.immi[c]; out.fonts[f] = vell.fonts[f]; }
   }

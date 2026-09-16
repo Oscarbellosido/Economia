@@ -24,6 +24,10 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ FMI IRFCL        → altra.or[ISO3][any] en tones (+ altra.orNoms per als països extra)
   ├─ OCDE FINMARK     → fiscal.bons[ISO3|EURO]["AAAA-MM"]   (bons a 10 anys, pestanya Deute)
   ├─ OCDE Taxing Wages→ fiscal.impostos[ISO3].{irpf, irpfSS, cunya, brut, net}  (pestanya Impostos)
+  ├─ Tresor EUA       → eua.deute["AAAA-MM"] = [total, en mans del públic], eua.deuteUltim
+  ├─ Tresor TIC       → eua.tenidors[país|TOTAL|OFICIAL]["AAAA-MM"]  (mfhhis01.txt històric + slt_table5.txt recent)
+  ├─ Fed NY           → eua.rrp["AAAA-MM"] (mitjana), eua.rrpUltim, eua.rrpMax
+  ├─ FMI IRFCL mensual→ altra.orMensual[ISO3]["AAAA-MM"] (compres de l'any en curs)
   ├─ Eurostat         → immi.eu[ISO3|EU][clau][any]   (pestanya "Immigració"; Grècia és EL a Eurostat)
   ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
   └─ Idescat (taules) → immi.cat {mun, com, anys, dades}: padró per lloc de naixement 2000-2022

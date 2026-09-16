@@ -34,6 +34,7 @@ Economia/
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
 | 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal i el sou brut i net descomptant la inflació |
 | 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses), dèficit i **quant costa**: bons a 10 anys, prima de risc i interessos pagats |
+| 💵 **Deute dels EUA** | El deute dels EUA (dada diària), qui té els seus bons a l'estranger (governs vs inversors privats), el "coixí" de liquiditat de la Fed que s'ha buidat i com s'encalla el sistema (2019, Londres 2022, Japó 2024) |
 | 📈 **Tipus d'interès** | Els tipus dels bancs centrals des del 2007 i els tipus reals (tipus menys inflació) |
 | 🏭 **Creixement** | Creixement del PIB, atur i riquesa per habitant |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
@@ -61,7 +62,10 @@ Totes són oficials i gratuïtes, sense clau:
 | Preu real de l'habitatge | **BIS** — Residential property prices |
 | Balanç dels bancs centrals | **BIS** — Central bank total assets |
 | Diners en circulació (M3), PIB nominal i preus de la zona euro | **BCE** (`data-api.ecb.europa.eu`) |
-| Reserves d'or | **FMI** — International Reserves (`api.imf.org`) |
+| Reserves d'or (anuals i mensuals) | **FMI** — International Reserves (`api.imf.org`) |
+| Deute dels EUA | **Tresor dels EUA** — Debt to the Penny (`api.fiscaldata.treasury.gov`) |
+| Tenidors estrangers de bons dels EUA | **Tresor dels EUA** — Treasury International Capital (TIC) |
+| Repo invers de la Fed | **Fed de Nova York** (`markets.newyorkfed.org`) |
 | Immigració a Europa (població nascuda a fora, migració neta, irregulars, ordres d'expulsió i retorns, asil, permisos, feina i pobresa) | **Eurostat** |
 | Immigrants al món i remeses | **Banc Mundial** |
 | Població nascuda a l'estranger per municipi i comarca | **Idescat** (padró; l'última dada de cada poble es consulta en directe) |

@@ -262,6 +262,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <button data-v="sous" onclick="go('sous')">💶 Sous</button>
       <button data-v="impostos" onclick="go('impostos')">🧾 Impostos</button>
       <button data-v="deute" onclick="go('deute')">🏦 Deute</button>
+      <button data-v="eua" onclick="go('eua')">💵 Deute dels EUA</button>
       <button data-v="tipus" onclick="go('tipus')">📈 Tipus d'interès</button>
       <button data-v="creixement" onclick="go('creixement')">🏭 Creixement</button>
       <button data-v="pais" onclick="go('pais')">📍 Fitxa de país</button>
@@ -288,6 +289,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
   <section class="view" id="v-impostos"></section>
   <!-- ── Deute ── -->
   <section class="view" id="v-deute"></section>
+  <!-- ── Deute dels EUA ── -->
+  <section class="view" id="v-eua"></section>
   <!-- ── Tipus ── -->
   <section class="view" id="v-tipus"></section>
   <!-- ── Creixement ── -->
@@ -315,7 +318,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -425,7 +428,7 @@ function niceTicks(min, max, n = 5) {
   return t;
 }
 const monthX = s => +s.slice(0, 4) + (+s.slice(5, 7) - 1) / 12;
-const MESOS = ['gen', 'febr', 'març', 'abr', 'maig', 'juny', 'jul', 'ag', 'set', 'oct', 'nov', 'des'];
+const MESOS = ['gener', 'febrer', 'març', 'abril', 'maig', 'juny', 'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre'];
 const monthLabel = x => { const y = Math.floor(x + 1e-6); return `${MESOS[Math.round((x - y) * 12)]} ${y}`; };
 
 /**
@@ -536,7 +539,7 @@ const chart = (id, fn) => { pending.push([id, fn]); return `<div class="chart" i
 function flushCharts() { for (const [id, fn] of pending) { const el = document.getElementById(id); if (el) fn(el); } }
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
-const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, tipus: renderTipus,
+const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, eua: renderEua, tipus: renderTipus,
   creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, immigracio: renderImmigracio, aprendre: renderAprendre };
 function go(v) {
   if (!VIEWS[v]) v = 'resum';
@@ -788,7 +791,7 @@ function renderResum() {
       ${orCompra ? tile('Or comprat pels bancs centrals', '+' + int(orCompra) + ' t', 'del 2021 al 2025 (els que ho declaren)') : ''}
     </div>
     <p><b>Les cinc grans tendències</b></p>
-    <p class="sub">1. <b>Deute rècord i cada cop més car.</b> Els estats deuen més que mai i, sense bancs centrals que comprin bons, han de pagar més interessos. <a href="#deute">Deute →</a></p>
+    <p class="sub">1. <b>Deute rècord i cada cop més car.</b> Els estats deuen més que mai i, sense bancs centrals que comprin bons, han de pagar més interessos. <a href="#deute">Deute →</a> · <a href="#eua">Deute dels EUA →</a></p>
     <p class="sub">2. <b>Energia i geopolítica.</b> La crisi d'Ormuz ha tornat a encarir el petroli i frena la baixada de la inflació. <a href="#inici">Actualitat →</a></p>
     <p class="sub">3. <b>Desconfiança en el sistema.</b> Els bancs centrals compren or com mai des de les sancions a Rússia, per no dependre del dòlar. <a href="#altra">L'altra cara →</a></p>
     <p class="sub">4. <b>Actius cars, sous que no els segueixen.</b> Anys de diners fàcils han pujat pisos i borsa; qui només té el sou s'ha quedat enrere. <a href="#altra">L'altra cara →</a></p>
@@ -1336,6 +1339,15 @@ function renderAltra() {
   const totalOr = Object.keys(O).map(c => ({ c, name: nomOr(c), v: O[c][ultimOr(c)], color: 'var(--s4)' })).sort((a, b) => b.v - a.v).slice(0, 15);
   const orAny = Object.keys(O).length ? Math.max(...Object.keys(O).map(ultimOr)) : null;
   const chn = O.CHN;
+  // Compres i vendes de l'any en curs amb les dades mensuals (des del desembre anterior)
+  const OM = X.orMensual || {};
+  const anyOr = Math.max(...Object.values(OM).flatMap(x => Object.keys(x)).map(k => +k.slice(0, 4)), 0);
+  const ultimMesOr = Object.values(OM).flatMap(x => Object.keys(x)).filter(k => k.startsWith(anyOr)).sort().at(-1);
+  const any26 = Object.keys(OM).map(c => {
+    const s = OM[c], ks = Object.keys(s).filter(k => k.startsWith(anyOr)).sort(), base = s[`${anyOr - 1}-12`];
+    return ks.length && base != null ? { c, name: nomOr(c), v: s[ks.at(-1)] - base, mes: ks.at(-1) } : null;
+  }).filter(r => r && Math.abs(r.v) >= 1).sort((a, b) => b.v - a.v);
+  const net26 = any26.reduce((t, r) => t + r.v, 0);
 
   return `
   <div class="intro">
@@ -1424,6 +1436,13 @@ function renderAltra() {
       <div><b>💵 Desconfiança en el dòlar</b><p class="sub">Amb els EUA i altres estats molt endeutats, l'or és una reserva que no depèn de cap govern.</p></div>
       <div><b>🛡️ Protecció</b><p class="sub">Si les monedes perden valor per la inflació, l'or tendeix a mantenir el seu.</p></div>
     </div>
+    ${any26.length ? `<div class="callout" style="margin-bottom:14px">
+      <h3>El ${anyOr}, fins a ${esc(monthLabel(monthX(ultimMesOr)))}</h3>
+      <p class="sub">Tones comprades (o venudes) des del desembre del ${anyOr - 1}, segons les dades mensuals que els països envien a l'FMI.
+      Entre tots els que ho declaren: <b>${sgn(net26, 0)} t</b>. Quan un estat necessita diners, fins i tot l'or es ven: fixa't en els negatius.</p>
+      ${barsHTML(any26, { fmt: v => sgn(v, 0) + ' t' })}
+      <p class="muted">Alguns països publiquen amb un o dos mesos de retard; les dades oficials no inclouen compres no declarades.</p>
+    </div>` : ''}
     <div class="grid g2">
       <div>
         <h3>Qui n'ha comprat més des del 2021</h3>
@@ -1804,6 +1823,131 @@ function renderImpostos() {
   </div>`;
 }
 
+/* ── 💵 Deute dels EUA i la "fontaneria" del sistema ────────────────────────── */
+// Tresor dels EUA (deute diari i tenidors estrangers, TIC) i Fed de Nova York (repo invers).
+const TIC_NOMS = {
+  Japan: '🇯🇵 Japó', 'United Kingdom': '🇬🇧 Regne Unit', 'China, Mainland': '🇨🇳 Xina', Belgium: '🇧🇪 Bèlgica', Canada: '🇨🇦 Canadà',
+  Luxembourg: '🇱🇺 Luxemburg', 'Cayman Islands': '🇰🇾 Illes Caiman', France: '🇫🇷 França', Ireland: '🇮🇪 Irlanda', Taiwan: '🇹🇼 Taiwan',
+  Switzerland: '🇨🇭 Suïssa', Singapore: '🇸🇬 Singapur', 'Hong Kong': '🇭🇰 Hong Kong', Norway: '🇳🇴 Noruega', India: '🇮🇳 Índia',
+  Brazil: '🇧🇷 Brasil', 'Saudi Arabia': '🇸🇦 Aràbia Saudita', 'Korea, South': '🇰🇷 Corea del Sud', Israel: '🇮🇱 Israel',
+  'United Arab Emirates': '🇦🇪 Emirats Àrabs', Germany: '🇩🇪 Alemanya', Bermuda: '🇧🇲 Bermudes',
+};
+const bil = v => v == null ? '–' : nf(v / 1000, v >= 10000 ? 1 : 2) + ' bil. $';
+const serieMes = (obj, f = x => x) => Object.entries(obj || {}).map(([k, v]) => [monthX(k), f(v)]).filter(p => p[1] != null).sort((a, b) => a[0] - b[0]);
+
+function renderEua() {
+  const U = D.eua;
+  if (!U?.deute) return '<p class="muted">Aquestes dades encara no s\'han baixat.</p>';
+  const [dAvui, dTot] = U.deuteUltim;
+  const mesos = Object.keys(U.deute).sort();
+  const fa1 = mesos.find(k => k >= (+dAvui.slice(0, 4) - 1) + dAvui.slice(4, 7));
+  const creixAny = fa1 ? dTot - U.deute[fa1][0] : null;
+  const perDia = creixAny != null ? creixAny / 365 * 1000 : null; // milions de dòlars al dia
+  const deute20 = U.deute['2020-01']?.[0];
+
+  const T = U.tenidors || {};
+  const ultTic = Object.keys(T.TOTAL || {}).sort().at(-1);
+  const fa12 = ultTic ? `${+ultTic.slice(0, 4) - 1}${ultTic.slice(4)}` : null;
+  const total = T.TOTAL?.[ultTic], oficial = T.OFICIAL?.[ultTic];
+  const public_ = U.deute[ultTic]?.[1];
+  const quotaFora = total && public_ ? total / public_ * 100 : null;
+  const paisos = Object.keys(T).filter(k => k !== 'TOTAL' && k !== 'OFICIAL' && T[k][ultTic] != null);
+  const top = paisos.map(k => ({ c: k, name: TIC_NOMS[k] || k, v: T[k][ultTic] })).sort((a, b) => b.v - a.v);
+  const canvi = paisos.map(k => ({ c: k, name: TIC_NOMS[k] || k, v: T[k][fa12] != null ? T[k][ultTic] - T[k][fa12] : null })).filter(r => r.v != null).sort((a, b) => b.v - a.v);
+  const priv = Object.fromEntries(Object.keys(T.TOTAL || {}).filter(k => T.OFICIAL?.[k] != null).map(k => [k, T.TOTAL[k] - T.OFICIAL[k]]));
+  const offCanvi = T.OFICIAL?.[fa12] != null ? oficial - T.OFICIAL[fa12] : null;
+  const privCanvi = priv[fa12] != null ? priv[ultTic] - priv[fa12] : null;
+  const caiman = T['Cayman Islands'];
+
+  const [rDia, rVal] = U.rrpUltim || [];
+  const [mDia, mVal] = U.rrpMax || [];
+
+  return `
+  <div class="intro">
+    <h2>💵 El deute dels EUA i la "fontaneria" del sistema</h2>
+    <p class="sub">El dòlar és la moneda en què estalvia mig món, i els bons del Tresor dels EUA són la base de tot el sistema financer.
+    Per això importa tant <b>quant deuen els EUA, qui els deixa els diners i amb quins diners ho fa</b>.</p>
+  </div>
+  <div class="tiles">
+    ${tile('🇺🇸 Deute total dels EUA', bil(dTot), `a ${esc(dAvui.split('-').reverse().join('/'))}`, '<span class="badge bad">▲ rècord</span>')}
+    ${creixAny != null ? tile('Ha crescut en un any', '+' + bil(creixAny), `uns ${int(perDia)} milions de dòlars cada dia`) : ''}
+    ${deute20 ? tile('Des del gener del 2020', '×' + nf(dTot / deute20, 2), `era de ${bil(deute20)}`) : ''}
+    ${quotaFora ? tile('En mans d\'estrangers', pct(quotaFora, 0), `del deute que es negocia (${esc(monthLabel(monthX(ultTic)))})`) : ''}
+  </div>
+
+  <div class="card">
+    <h3>📈 Deute total dels EUA</h3>
+    <p class="sub">Milers de milions de dòlars, a final de cada mes. Es dispara amb cada crisi (2008, 2020) i ja no baixa quan la crisi s'acaba.</p>
+    ${chart('c-eua-deute', el => lineChart(el, { title: 'Deute dels EUA', months: true, fmt: v => bil(v), tick: v => nf(v / 1000, 0) + ' bil.',
+      series: [{ name: 'Deute total', color: 'var(--s2)', pts: serieMes(U.deute, x => x[0]) },
+               { name: 'Deute en mans del públic (sense el que es deu a si mateix)', short: 'En mans del públic', color: 'var(--s1)', pts: serieMes(U.deute, x => x[1]) }] }))}
+    <p class="muted">Una part del deute total el tenen organismes del mateix govern (com la Seguretat Social). El que es compra i es ven al mercat és el deute "en mans del públic".</p>
+  </div>
+
+  ${ultTic ? `<div class="card">
+    <h3>🌍 Qui té els bons dels EUA a l'estranger?</h3>
+    <p class="sub">La idea que "el món fuig del dòlar" és només mitja veritat. Els <b>governs i bancs centrals</b> estrangers n'han reduït el pes,
+    però els <b>inversors privats</b> (fons, bancs, hedge funds) n'han comprat molts més.</p>
+    <div class="tiles">
+      ${tile('Total en mans d\'estrangers', bil(total), esc(monthLabel(monthX(ultTic))))}
+      ${tile('🏛️ Governs i bancs centrals', bil(oficial), offCanvi != null ? `${offCanvi >= 0 ? '+' : '−'}${int(Math.abs(offCanvi))} mil M $ en un any` : '')}
+      ${tile('🏦 Inversors privats', bil(priv[ultTic]), privCanvi != null ? `${privCanvi >= 0 ? '+' : '−'}${int(Math.abs(privCanvi))} mil M $ en un any` : '')}
+    </div>
+    ${chart('c-eua-tic', el => lineChart(el, { title: 'Bons dels EUA en mans d\'estrangers', months: true, fmt: v => bil(v), tick: v => nf(v / 1000, 0) + ' bil.',
+      series: [{ name: 'Governs i bancs centrals estrangers', short: 'Oficials', color: 'var(--s4)', pts: serieMes(T.OFICIAL) },
+               { name: 'Inversors privats estrangers', short: 'Privats', color: 'var(--s1)', pts: serieMes(priv) }] }))}
+    <div class="grid g2" style="margin-top:14px">
+      <div><h3>Els principals tenidors</h3><p class="sub">Milers de milions de dòlars (${esc(monthLabel(monthX(ultTic)))}).</p>
+        ${barsHTML(top, { fmt: v => int(v), me: 'Japan' })}</div>
+      <div><h3>Qui n'ha comprat i qui n'ha venut en un any</h3><p class="sub">Canvi respecte a ${esc(monthLabel(monthX(fa12)))}, en milers de milions.</p>
+        ${barsHTML(canvi, { fmt: v => sgn(v, 0) })}</div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>🏝️ Per què hi surten les Illes Caiman, Luxemburg o Bèlgica?</b>
+      <p class="sub">No són grans estalviadors: allà hi ha domiciliats molts <b>fons d'inversió i hedge funds</b>, i dipòsits de valors d'arreu (Bèlgica té Euroclear).
+      ${caiman ? `Les Caiman han passat de ${int(caiman[Object.keys(caiman).sort()[0]])} mil milions (${Object.keys(caiman).sort()[0].slice(0, 4)}) a ${int(caiman[ultTic])} mil milions de dòlars.` : ''}
+      Molts d'aquests fons compren bons amb <b>diners manllevats a molt curt termini</b> (vegeu més avall): és una demanda real però fràgil.</p>
+    </div>
+    <p class="muted">Font: Tresor dels EUA (TIC). El país és on està registrat qui té el bo, no sempre el propietari final.</p>
+  </div>` : ''}
+
+  ${U.rrp ? `<div class="card">
+    <h3>🚰 El coixí de liquiditat que s'ha buidat</h3>
+    <p class="sub">Els fons monetaris poden deixar els diners que no fan servir a la Reserva Federal d'un dia per l'altre (el <b>repo invers</b>).
+    Quan el Tresor necessita vendre molts bons, aquests fons en treuen els diners per comprar-ne. És com un dipòsit d'aigua que ajuda a absorbir deute nou.</p>
+    <div class="tiles">
+      ${mVal ? tile('Màxim', bil(mVal), `el ${esc(mDia.split('-').reverse().join('/'))}`) : ''}
+      ${rVal != null ? tile('Ara', rVal < 1 ? int(rVal * 1000) + ' milions de , `el ${esc(rDia.split('-').reverse().join('/'))}`,
+        mVal && rVal / mVal < 0.05 ? '<span class="badge warn">▼ gairebé buit</span>' : '') : ''}
+    </div>
+    ${chart('c-eua-rrp', el => lineChart(el, { title: 'Repo invers de la Fed', months: true, fmt: v => bil(v), tick: v => nf(v / 1000, 1) + ' bil.',
+      series: [{ name: 'Diners aparcats a la Fed (mitjana del mes)', color: 'var(--s3)', pts: serieMes(U.rrp) }] }))}
+    <p class="sub" style="margin-top:8px">Durant el 2023 i el 2024 aquests diners van anar a comprar deute nou dels EUA sense que la Fed hagués d'imprimir res.
+    Ara que el dipòsit és gairebé buit, <b>aquest recurs ja no hi és</b>: el Tresor depèn més de compradors que es financen a curt termini.</p>
+    <p class="muted">Font: Fed de Nova York.</p>
+  </div>` : ''}
+
+  <div class="card">
+    <h3>🔧 Com es pot encallar la canonada</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div><b>💱 El "basis trade"</b><p class="sub">Alguns hedge funds compren bons del Tresor i venen futurs sobre aquests bons per guanyar una diferència minúscula.
+      Per fer-ho rendible, s'endeuten molt a un dia vista al <b>mercat repo</b>. Funciona mentre algú els deixi diners cada dia.</p></div>
+      <div><b>🚨 Setembre del 2019</b><p class="sub">Van coincidir pagaments d'impostos i de deute, i el tipus del mercat repo es va disparar fins a prop del 10 %.
+      Ningú no havia fet fallida, però els diners no circulaven. La Fed va haver d'injectar liquiditat.</p></div>
+      <div><b>🇬🇧 Londres, setembre del 2022</b><p class="sub">El govern de Liz Truss va anunciar rebaixes d'impostos sense finançar. Els bons britànics es van enfonsar
+      i els fons de pensions, que feien servir estratègies amb palanquejament, van haver de vendre bons de cop. El Banc d'Anglaterra va haver d'intervenir.</p></div>
+      <div><b>🇯🇵 Agost del 2024</b><p class="sub">Molts inversors es finançaven en iens barats per invertir fora (<b>carry trade</b>). Quan el ien es va encarir,
+      van haver de desfer posicions de cop i la borsa japonesa va caure més d'un 12 % en un dia.</p></div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>La lliçó: solvència no és liquiditat</b>
+      <p class="sub">Pots tenir actius que valen més que els teus deutes i, tot i així, no tenir els diners el dia que te'ls demanen. Quan molts inversors han de vendre alhora,
+      els preus cauen, els demanen més garanties i han de vendre encara més. Per això els bancs centrals acaben rescatant el sistema, i el cost acaba
+      repartit entre tothom (inflació, tipus, impostos).</p>
+    </div>
+  </div>`;
+}
+
 /* ── 📊 Comparar ────────────────────────────────────────────────────────────── */
 const COLS = [
   ['pib', 'PIB', money, null], ['creix', 'Creix.', v => sgn(v) + ' %', null], ['infl', 'Inflació', v => pct(v), [5]],
@@ -1865,6 +2009,373 @@ function renderAprendre() {
     ['Paritat de poder adquisitiu (PPA)', 'Una manera de comparar països tenint en compte que la vida no costa el mateix a tot arreu. Un dòlar a l\'Índia compra més que a Suïssa.'],
     ['Balança per compte corrent', 'La diferència entre el que un país ven i cobra de l\'estranger i el que hi compra i paga.'],
     ['Taxa d\'atur', 'El percentatge de persones que volen treballar i no troben feina.'],
+    ['Bo del Tresor', 'Un préstec que fas a l\'estat: li deixes diners i te\'ls retorna amb interessos en un termini fix (de mesos a 30 anys). Els "bons a 10 anys" són la referència per saber quant paga un país per endeutar-se.'],
+    ['Rendiment d\'un bo', 'L\'interès que cobra qui compra el bo avui. Si els inversors desconfien, venen bons, el preu baixa i el rendiment puja: l\'estat haurà de pagar més pel deute nou.'],
+    ['Solvència i liquiditat', 'Solvència és poder pagar tots els deutes a la llarga. Liquiditat és tenir els diners el dia que te\'ls demanen. Es pot ser solvent i tenir una crisi de liquiditat.'],
+    ['Mercat repo', 'On bancs i fons es deixen diners a molt curt termini (sovint d\'un dia per l\'altre) donant bons com a garantia. És la "canonada" per on circulen els diners del sistema.'],
+    ['Repo invers de la Fed', 'Un lloc on els fons monetaris poden deixar diners a la Reserva Federal d\'un dia per l\'altre. Va arribar a tenir més de 2 bilions de dòlars; ara és gairebé buit.'],
+    ['Basis trade', 'Estratègia de hedge funds: comprar bons i vendre futurs sobre aquests bons per guanyar una diferència petita, multiplicada amb diners manllevats. Si el finançament s\'encareix, han de vendre de cop.'],
+    ['Carry trade', 'Demanar prestat en una moneda amb tipus baixos (com el ien) per invertir on es cobra més. Si aquella moneda s\'encareix, tothom vol sortir alhora.'],
+    ['Expansió i reducció quantitativa (QE i QT)', 'QE: el banc central compra bons amb diners nous per abaratir el crèdit. QT: fa el contrari, deixa vèncer els bons o els ven, i retira diners del sistema.'],
+    ['Palanquejament', 'Invertir amb diners manllevats. Multiplica els guanys i també les pèrdues, i obliga a vendre si et demanen més garanties.'],
+    ['Progressivitat en fred', 'Quan els trams de l\'IRPF no s\'actualitzen amb la inflació: amb el mateix poder adquisitiu pagues un percentatge més alt d\'impostos.'],
+    ['Cunya fiscal', 'Tot el que l\'estat es queda del cost d\'un treballador: IRPF i cotitzacions del treballador i de l\'empresa.'],
+    ['Remeses', 'Diners que els immigrants envien a les seves famílies al país d\'origen.'],
+    ['Reserves d\'or', 'L\'or que guarden els bancs centrals. No depèn de cap altre país ni es pot congelar si està guardat a casa, per això se\'n compra més des del 2022.'],
+  ];
+  return `
+  <div class="intro">
+    <h2>📘 Com funciona l'economia mundial</h2>
+    <p class="sub">Una explicació curta de les peces principals i de com es mouen juntes.</p>
+  </div>
+  <div class="card">
+    <h3>El cicle en un dibuix</h3>
+    <div class="flow">
+      <div class="step"><b>👩‍🔧 Treballem</b>Les empreses produeixen i paguen sous.</div><div class="arr">→</div>
+      <div class="step"><b>🛍️ Gastem</b>Amb el sou comprem, i les empreses venen.</div><div class="arr">→</div>
+      <div class="step"><b>🏛️ Paguem impostos</b>L'estat en treu sanitat, escoles i pensions.</div><div class="arr">→</div>
+      <div class="step"><b>🏦 Estalviem i demanem prestat</b>Els bancs mouen els diners de qui en té a qui en necessita.</div>
+    </div>
+    <p class="sub" style="margin-top:10px">Tot això sumat és el <b>PIB</b>. Si la gent gasta més del que les empreses poden produir, els preus pugen (<b>inflació</b>).
+    Si gasta menys, les empreses venen menys i acomiaden gent (<b>atur</b>). El <b>banc central</b> intenta mantenir l'equilibri amb els tipus d'interès,
+    i l'<b>estat</b> amb els impostos i la despesa: si gasta més del que ingressa, té <b>dèficit</b> i s'endeuta.</p>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Els quatre termòmetres</h3>
+      <p><b>🏭 Creixement</b> — si l'economia es fa gran. Sa: 1,5-3 % als països rics.</p>
+      <p><b>🛒 Inflació</b> — si els preus pugen. Objectiu: 2 %.</p>
+      <p><b>👷 Atur</b> — si hi ha feina per a tothom. Sa: per sota del 5 %.</p>
+      <p><b>🏦 Deute</b> — si l'estat pot pagar el que deu. Les normes europees demanen menys del 60 %.</p>
+    </div>
+    <div class="card">
+      <h3>Per què tot està connectat?</h3>
+      <p class="sub">Un exemple real, el 2022: la guerra encareix el gas → puja l'electricitat i el transport → puja la inflació →
+      el BCE apuja els tipus → pugen les hipoteques → les famílies gasten menys → l'economia creix menys → la inflació baixa.</p>
+      <p class="sub">Mentrestant, els estats paguen més interessos pel seu deute, i els sous van per darrere dels preus fins que es negocien nous convenis.</p>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Glossari</h3>
+    ${G.map(([t, d]) => `<details class="glos"><summary>${esc(t)}</summary><p>${esc(d)}</p></details>`).join('')}
+  </div>`;
+}
+
+/* ── Init ───────────────────────────────────────────────────────────────────── */
+function fontsText() {
+  const f = D.fonts || {};
+  const names = [...new Set(Object.values(f).map(x => x.font))];
+  return `Dades actualitzades el ${esc(D.generat)}. Fonts: ${names.map(esc).join(' · ')}.`;
+}
+async function init() {
+  $('#ver').textContent = `${APP_VERSION} (${BUILD_DATE})`;
+  try {
+    const r = await fetch('dades.json', { cache: 'no-cache', signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    D = await r.json();
+  } catch (e) {
+    // sense xarxa ni cache del service worker: intentem la còpia de localStorage
+    D = lsGet(LS_DATA, null);
+    if (!D) { $('#loading').textContent = 'No s\'han pogut carregar les dades. Comprova la connexió i torna-ho a provar.'; return; }
+  }
+  Y = +D.generat.slice(0, 4);
+  sel = sel.filter(c => ent(c)); if (!sel.length) sel = [...DEFAULT_SEL];
+  fixColors(sel, colorOf);
+  $('#loading').remove();
+  $('#fonts').innerHTML = fontsText();
+  go(location.hash.slice(1) || 'resum');
+  setTimeout(() => lsSet(LS_DATA, D), 1000);
+}
+init();
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
+ : rVal < 100 ? nf(rVal, 1) + ' mil M , `el ${esc(rDia.split('-').reverse().join('/'))}`,
+        mVal && rVal / mVal < 0.05 ? '<span class="badge warn">▼ gairebé buit</span>' : '') : ''}
+    </div>
+    ${chart('c-eua-rrp', el => lineChart(el, { title: 'Repo invers de la Fed', months: true, fmt: v => bil(v), tick: v => nf(v / 1000, 1) + ' bil.',
+      series: [{ name: 'Diners aparcats a la Fed (mitjana del mes)', color: 'var(--s3)', pts: serieMes(U.rrp) }] }))}
+    <p class="sub" style="margin-top:8px">Durant el 2023 i el 2024 aquests diners van anar a comprar deute nou dels EUA sense que la Fed hagués d'imprimir res.
+    Ara que el dipòsit és gairebé buit, <b>aquest recurs ja no hi és</b>: el Tresor depèn més de compradors que es financen a curt termini.</p>
+    <p class="muted">Font: Fed de Nova York.</p>
+  </div>` : ''}
+
+  <div class="card">
+    <h3>🔧 Com es pot encallar la canonada</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div><b>💱 El "basis trade"</b><p class="sub">Alguns hedge funds compren bons del Tresor i venen futurs sobre aquests bons per guanyar una diferència minúscula.
+      Per fer-ho rendible, s'endeuten molt a un dia vista al <b>mercat repo</b>. Funciona mentre algú els deixi diners cada dia.</p></div>
+      <div><b>🚨 Setembre del 2019</b><p class="sub">Van coincidir pagaments d'impostos i de deute, i el tipus del mercat repo es va disparar fins a prop del 10 %.
+      Ningú no havia fet fallida, però els diners no circulaven. La Fed va haver d'injectar liquiditat.</p></div>
+      <div><b>🇬🇧 Londres, setembre del 2022</b><p class="sub">El govern de Liz Truss va anunciar rebaixes d'impostos sense finançar. Els bons britànics es van enfonsar
+      i els fons de pensions, que feien servir estratègies amb palanquejament, van haver de vendre bons de cop. El Banc d'Anglaterra va haver d'intervenir.</p></div>
+      <div><b>🇯🇵 Agost del 2024</b><p class="sub">Molts inversors es finançaven en iens barats per invertir fora (<b>carry trade</b>). Quan el ien es va encarir,
+      van haver de desfer posicions de cop i la borsa japonesa va caure més d'un 12 % en un dia.</p></div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>La lliçó: solvència no és liquiditat</b>
+      <p class="sub">Pots tenir actius que valen més que els teus deutes i, tot i així, no tenir els diners el dia que te'ls demanen. Quan molts inversors han de vendre alhora,
+      els preus cauen, els demanen més garanties i han de vendre encara més. Per això els bancs centrals acaben rescatant el sistema, i el cost acaba
+      repartit entre tothom (inflació, tipus, impostos).</p>
+    </div>
+  </div>`;
+}
+
+/* ── 📊 Comparar ────────────────────────────────────────────────────────────── */
+const COLS = [
+  ['pib', 'PIB', money, null], ['creix', 'Creix.', v => sgn(v) + ' %', null], ['infl', 'Inflació', v => pct(v), [5]],
+  ['atur', 'Atur', v => pct(v), [10]], ['deute', 'Deute', v => pct(v, 0), [100]], ['deficit', 'Saldo públic', v => sgn(v) + ' %', null],
+  ['pibpc', 'PIB/hab.', v => int(v) + ' $', null], ['pob', 'Població', v => nf(v, v < 10 ? 1 : 0) + ' M', null],
+];
+let sortK = 'pib', sortDir = -1, cmpY = null;
+function sortBy(k) { if (sortK === k) sortDir *= -1; else { sortK = k; sortDir = k === 'nom' ? 1 : -1; } renderView(); }
+function renderComparar() {
+  const ay = cmpY ?? Y;
+  const years = Object.keys(D.paisos.USA.s.pib).map(Number);
+  const key = c => sortK === 'nom' ? ent(c).nom : val(c, sortK, ay);
+  const cs = countries().sort((a, b) => {
+    const x = key(a), y = key(b);
+    if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === 'string' ? x.localeCompare(y, 'ca') : x - y) * sortDir;
+  });
+  const cell = (c, [k, , f, lim]) => {
+    const v = val(c, k, ay);
+    const cls = lim && v != null && v >= lim[0] ? 'hi' : '';
+    return `<td class="num ${cls}">${esc(f(v))}</td>`;
+  };
+  const th = (k, t) => `<th class="${sortK === k ? 'on' : ''}" onclick="sortBy('${k}')">${t}${sortK === k ? (sortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+  return `
+  <div class="intro">
+    <h2>📊 Comparar tots els països</h2>
+    <p class="sub">Toca el títol d'una columna per ordenar. En vermell, valors preocupants (inflació ≥ 5 %, atur ≥ 10 %, deute ≥ 100 %).</p>
+    <div class="controls">Any:
+      <select onchange="cmpY=+this.value;renderView()" aria-label="Any">${years.map(a => `<option value="${a}" ${a === ay ? 'selected' : ''}>${a}${a >= Y ? ' (previsió)' : ''}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="card tablewrap">
+    <table>
+      <thead><tr>${th('nom', 'País')}${COLS.map(([k, t]) => th(k, t)).join('')}</tr></thead>
+      <tbody>
+        ${cs.map(c => `<tr><td><a href="#pais" onclick="fitxa='${c}';lsSet('economia_fitxa','${c}')">${esc(label(c))}</a></td>${COLS.map(col => cell(c, col)).join('')}</tr>`).join('')}
+        ${Object.keys(D.grups).map(c => `<tr class="grp"><td>${esc(label(c))}</td>${COLS.map(col => cell(c, col)).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ── 📘 Com funciona ────────────────────────────────────────────────────────── */
+function renderAprendre() {
+  const G = [
+    ['PIB (producte interior brut)', 'El valor de tots els béns i serveis que un país produeix en un any. És la mida de l\'economia.'],
+    ['Creixement econòmic', 'Quant augmenta el PIB d\'un any a l\'altre, descomptant la pujada de preus.'],
+    ['Recessió', 'Quan l\'economia es fa petita durant uns mesos seguits. Normalment puja l\'atur.'],
+    ['Inflació', 'La pujada general dels preus en un any. Si és del 3 %, el que costava 100 € ara en costa 103.'],
+    ['IPC', 'Índex de preus de consum: la cistella de productes que es fa servir per mesurar la inflació.'],
+    ['Deflació', 'Quan els preus baixen de manera general. Sembla bo, però la gent ajorna compres i l\'economia es frena.'],
+    ['Sou nominal i sou real', 'El nominal és el que diu la nòmina. El real és el que pots comprar amb aquell sou, un cop descomptada la inflació.'],
+    ['Deute públic', 'Tot el que deuen l\'estat, les comunitats autònomes i els ajuntaments.'],
+    ['Dèficit públic', 'Quan un any l\'estat gasta més del que ingressa. Cada dèficit fa créixer el deute.'],
+    ['Prima de risc', 'Quant més interès paga un país que Alemanya per demanar prestat. Mesura la desconfiança dels inversors.'],
+    ['Banc central', 'L\'organisme que controla la moneda i fixa els tipus d\'interès: el BCE a la zona euro, la Reserva Federal als EUA.'],
+    ['Tipus d\'interès', 'El preu de demanar diners prestats. El banc central fixa el de referència.'],
+    ['Euríbor', 'El tipus al qual els bancs europeus es deixen diners entre ells. Moltes hipoteques s\'hi calculen. Segueix de prop el tipus del BCE.'],
+    ['Paritat de poder adquisitiu (PPA)', 'Una manera de comparar països tenint en compte que la vida no costa el mateix a tot arreu. Un dòlar a l\'Índia compra més que a Suïssa.'],
+    ['Balança per compte corrent', 'La diferència entre el que un país ven i cobra de l\'estranger i el que hi compra i paga.'],
+    ['Taxa d\'atur', 'El percentatge de persones que volen treballar i no troben feina.'],
+    ['Bo del Tresor', 'Un préstec que fas a l\'estat: li deixes diners i te\'ls retorna amb interessos en un termini fix (de mesos a 30 anys). Els "bons a 10 anys" són la referència per saber quant paga un país per endeutar-se.'],
+    ['Rendiment d\'un bo', 'L\'interès que cobra qui compra el bo avui. Si els inversors desconfien, venen bons, el preu baixa i el rendiment puja: l\'estat haurà de pagar més pel deute nou.'],
+    ['Solvència i liquiditat', 'Solvència és poder pagar tots els deutes a la llarga. Liquiditat és tenir els diners el dia que te\'ls demanen. Es pot ser solvent i tenir una crisi de liquiditat.'],
+    ['Mercat repo', 'On bancs i fons es deixen diners a molt curt termini (sovint d\'un dia per l\'altre) donant bons com a garantia. És la "canonada" per on circulen els diners del sistema.'],
+    ['Repo invers de la Fed', 'Un lloc on els fons monetaris poden deixar diners a la Reserva Federal d\'un dia per l\'altre. Va arribar a tenir més de 2 bilions de dòlars; ara és gairebé buit.'],
+    ['Basis trade', 'Estratègia de hedge funds: comprar bons i vendre futurs sobre aquests bons per guanyar una diferència petita, multiplicada amb diners manllevats. Si el finançament s\'encareix, han de vendre de cop.'],
+    ['Carry trade', 'Demanar prestat en una moneda amb tipus baixos (com el ien) per invertir on es cobra més. Si aquella moneda s\'encareix, tothom vol sortir alhora.'],
+    ['Expansió i reducció quantitativa (QE i QT)', 'QE: el banc central compra bons amb diners nous per abaratir el crèdit. QT: fa el contrari, deixa vèncer els bons o els ven, i retira diners del sistema.'],
+    ['Palanquejament', 'Invertir amb diners manllevats. Multiplica els guanys i també les pèrdues, i obliga a vendre si et demanen més garanties.'],
+    ['Progressivitat en fred', 'Quan els trams de l\'IRPF no s\'actualitzen amb la inflació: amb el mateix poder adquisitiu pagues un percentatge més alt d\'impostos.'],
+    ['Cunya fiscal', 'Tot el que l\'estat es queda del cost d\'un treballador: IRPF i cotitzacions del treballador i de l\'empresa.'],
+    ['Remeses', 'Diners que els immigrants envien a les seves famílies al país d\'origen.'],
+    ['Reserves d\'or', 'L\'or que guarden els bancs centrals. No depèn de cap altre país ni es pot congelar si està guardat a casa, per això se\'n compra més des del 2022.'],
+  ];
+  return `
+  <div class="intro">
+    <h2>📘 Com funciona l'economia mundial</h2>
+    <p class="sub">Una explicació curta de les peces principals i de com es mouen juntes.</p>
+  </div>
+  <div class="card">
+    <h3>El cicle en un dibuix</h3>
+    <div class="flow">
+      <div class="step"><b>👩‍🔧 Treballem</b>Les empreses produeixen i paguen sous.</div><div class="arr">→</div>
+      <div class="step"><b>🛍️ Gastem</b>Amb el sou comprem, i les empreses venen.</div><div class="arr">→</div>
+      <div class="step"><b>🏛️ Paguem impostos</b>L'estat en treu sanitat, escoles i pensions.</div><div class="arr">→</div>
+      <div class="step"><b>🏦 Estalviem i demanem prestat</b>Els bancs mouen els diners de qui en té a qui en necessita.</div>
+    </div>
+    <p class="sub" style="margin-top:10px">Tot això sumat és el <b>PIB</b>. Si la gent gasta més del que les empreses poden produir, els preus pugen (<b>inflació</b>).
+    Si gasta menys, les empreses venen menys i acomiaden gent (<b>atur</b>). El <b>banc central</b> intenta mantenir l'equilibri amb els tipus d'interès,
+    i l'<b>estat</b> amb els impostos i la despesa: si gasta més del que ingressa, té <b>dèficit</b> i s'endeuta.</p>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Els quatre termòmetres</h3>
+      <p><b>🏭 Creixement</b> — si l'economia es fa gran. Sa: 1,5-3 % als països rics.</p>
+      <p><b>🛒 Inflació</b> — si els preus pugen. Objectiu: 2 %.</p>
+      <p><b>👷 Atur</b> — si hi ha feina per a tothom. Sa: per sota del 5 %.</p>
+      <p><b>🏦 Deute</b> — si l'estat pot pagar el que deu. Les normes europees demanen menys del 60 %.</p>
+    </div>
+    <div class="card">
+      <h3>Per què tot està connectat?</h3>
+      <p class="sub">Un exemple real, el 2022: la guerra encareix el gas → puja l'electricitat i el transport → puja la inflació →
+      el BCE apuja els tipus → pugen les hipoteques → les famílies gasten menys → l'economia creix menys → la inflació baixa.</p>
+      <p class="sub">Mentrestant, els estats paguen més interessos pel seu deute, i els sous van per darrere dels preus fins que es negocien nous convenis.</p>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Glossari</h3>
+    ${G.map(([t, d]) => `<details class="glos"><summary>${esc(t)}</summary><p>${esc(d)}</p></details>`).join('')}
+  </div>`;
+}
+
+/* ── Init ───────────────────────────────────────────────────────────────────── */
+function fontsText() {
+  const f = D.fonts || {};
+  const names = [...new Set(Object.values(f).map(x => x.font))];
+  return `Dades actualitzades el ${esc(D.generat)}. Fonts: ${names.map(esc).join(' · ')}.`;
+}
+async function init() {
+  $('#ver').textContent = `${APP_VERSION} (${BUILD_DATE})`;
+  try {
+    const r = await fetch('dades.json', { cache: 'no-cache', signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    D = await r.json();
+  } catch (e) {
+    // sense xarxa ni cache del service worker: intentem la còpia de localStorage
+    D = lsGet(LS_DATA, null);
+    if (!D) { $('#loading').textContent = 'No s\'han pogut carregar les dades. Comprova la connexió i torna-ho a provar.'; return; }
+  }
+  Y = +D.generat.slice(0, 4);
+  sel = sel.filter(c => ent(c)); if (!sel.length) sel = [...DEFAULT_SEL];
+  fixColors(sel, colorOf);
+  $('#loading').remove();
+  $('#fonts').innerHTML = fontsText();
+  go(location.hash.slice(1) || 'resum');
+  setTimeout(() => lsSet(LS_DATA, D), 1000);
+}
+init();
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
+ : bil(rVal), `el ${esc(rDia.split('-').reverse().join('/'))}`,
+        mVal && rVal / mVal < 0.05 ? '<span class="badge warn">▼ gairebé buit</span>' : '') : ''}
+    </div>
+    ${chart('c-eua-rrp', el => lineChart(el, { title: 'Repo invers de la Fed', months: true, fmt: v => bil(v), tick: v => nf(v / 1000, 1) + ' bil.',
+      series: [{ name: 'Diners aparcats a la Fed (mitjana del mes)', color: 'var(--s3)', pts: serieMes(U.rrp) }] }))}
+    <p class="sub" style="margin-top:8px">Durant el 2023 i el 2024 aquests diners van anar a comprar deute nou dels EUA sense que la Fed hagués d'imprimir res.
+    Ara que el dipòsit és gairebé buit, <b>aquest recurs ja no hi és</b>: el Tresor depèn més de compradors que es financen a curt termini.</p>
+    <p class="muted">Font: Fed de Nova York.</p>
+  </div>` : ''}
+
+  <div class="card">
+    <h3>🔧 Com es pot encallar la canonada</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div><b>💱 El "basis trade"</b><p class="sub">Alguns hedge funds compren bons del Tresor i venen futurs sobre aquests bons per guanyar una diferència minúscula.
+      Per fer-ho rendible, s'endeuten molt a un dia vista al <b>mercat repo</b>. Funciona mentre algú els deixi diners cada dia.</p></div>
+      <div><b>🚨 Setembre del 2019</b><p class="sub">Van coincidir pagaments d'impostos i de deute, i el tipus del mercat repo es va disparar fins a prop del 10 %.
+      Ningú no havia fet fallida, però els diners no circulaven. La Fed va haver d'injectar liquiditat.</p></div>
+      <div><b>🇬🇧 Londres, setembre del 2022</b><p class="sub">El govern de Liz Truss va anunciar rebaixes d'impostos sense finançar. Els bons britànics es van enfonsar
+      i els fons de pensions, que feien servir estratègies amb palanquejament, van haver de vendre bons de cop. El Banc d'Anglaterra va haver d'intervenir.</p></div>
+      <div><b>🇯🇵 Agost del 2024</b><p class="sub">Molts inversors es finançaven en iens barats per invertir fora (<b>carry trade</b>). Quan el ien es va encarir,
+      van haver de desfer posicions de cop i la borsa japonesa va caure més d'un 12 % en un dia.</p></div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>La lliçó: solvència no és liquiditat</b>
+      <p class="sub">Pots tenir actius que valen més que els teus deutes i, tot i així, no tenir els diners el dia que te'ls demanen. Quan molts inversors han de vendre alhora,
+      els preus cauen, els demanen més garanties i han de vendre encara més. Per això els bancs centrals acaben rescatant el sistema, i el cost acaba
+      repartit entre tothom (inflació, tipus, impostos).</p>
+    </div>
+  </div>`;
+}
+
+/* ── 📊 Comparar ────────────────────────────────────────────────────────────── */
+const COLS = [
+  ['pib', 'PIB', money, null], ['creix', 'Creix.', v => sgn(v) + ' %', null], ['infl', 'Inflació', v => pct(v), [5]],
+  ['atur', 'Atur', v => pct(v), [10]], ['deute', 'Deute', v => pct(v, 0), [100]], ['deficit', 'Saldo públic', v => sgn(v) + ' %', null],
+  ['pibpc', 'PIB/hab.', v => int(v) + ' $', null], ['pob', 'Població', v => nf(v, v < 10 ? 1 : 0) + ' M', null],
+];
+let sortK = 'pib', sortDir = -1, cmpY = null;
+function sortBy(k) { if (sortK === k) sortDir *= -1; else { sortK = k; sortDir = k === 'nom' ? 1 : -1; } renderView(); }
+function renderComparar() {
+  const ay = cmpY ?? Y;
+  const years = Object.keys(D.paisos.USA.s.pib).map(Number);
+  const key = c => sortK === 'nom' ? ent(c).nom : val(c, sortK, ay);
+  const cs = countries().sort((a, b) => {
+    const x = key(a), y = key(b);
+    if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === 'string' ? x.localeCompare(y, 'ca') : x - y) * sortDir;
+  });
+  const cell = (c, [k, , f, lim]) => {
+    const v = val(c, k, ay);
+    const cls = lim && v != null && v >= lim[0] ? 'hi' : '';
+    return `<td class="num ${cls}">${esc(f(v))}</td>`;
+  };
+  const th = (k, t) => `<th class="${sortK === k ? 'on' : ''}" onclick="sortBy('${k}')">${t}${sortK === k ? (sortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+  return `
+  <div class="intro">
+    <h2>📊 Comparar tots els països</h2>
+    <p class="sub">Toca el títol d'una columna per ordenar. En vermell, valors preocupants (inflació ≥ 5 %, atur ≥ 10 %, deute ≥ 100 %).</p>
+    <div class="controls">Any:
+      <select onchange="cmpY=+this.value;renderView()" aria-label="Any">${years.map(a => `<option value="${a}" ${a === ay ? 'selected' : ''}>${a}${a >= Y ? ' (previsió)' : ''}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="card tablewrap">
+    <table>
+      <thead><tr>${th('nom', 'País')}${COLS.map(([k, t]) => th(k, t)).join('')}</tr></thead>
+      <tbody>
+        ${cs.map(c => `<tr><td><a href="#pais" onclick="fitxa='${c}';lsSet('economia_fitxa','${c}')">${esc(label(c))}</a></td>${COLS.map(col => cell(c, col)).join('')}</tr>`).join('')}
+        ${Object.keys(D.grups).map(c => `<tr class="grp"><td>${esc(label(c))}</td>${COLS.map(col => cell(c, col)).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ── 📘 Com funciona ────────────────────────────────────────────────────────── */
+function renderAprendre() {
+  const G = [
+    ['PIB (producte interior brut)', 'El valor de tots els béns i serveis que un país produeix en un any. És la mida de l\'economia.'],
+    ['Creixement econòmic', 'Quant augmenta el PIB d\'un any a l\'altre, descomptant la pujada de preus.'],
+    ['Recessió', 'Quan l\'economia es fa petita durant uns mesos seguits. Normalment puja l\'atur.'],
+    ['Inflació', 'La pujada general dels preus en un any. Si és del 3 %, el que costava 100 € ara en costa 103.'],
+    ['IPC', 'Índex de preus de consum: la cistella de productes que es fa servir per mesurar la inflació.'],
+    ['Deflació', 'Quan els preus baixen de manera general. Sembla bo, però la gent ajorna compres i l\'economia es frena.'],
+    ['Sou nominal i sou real', 'El nominal és el que diu la nòmina. El real és el que pots comprar amb aquell sou, un cop descomptada la inflació.'],
+    ['Deute públic', 'Tot el que deuen l\'estat, les comunitats autònomes i els ajuntaments.'],
+    ['Dèficit públic', 'Quan un any l\'estat gasta més del que ingressa. Cada dèficit fa créixer el deute.'],
+    ['Prima de risc', 'Quant més interès paga un país que Alemanya per demanar prestat. Mesura la desconfiança dels inversors.'],
+    ['Banc central', 'L\'organisme que controla la moneda i fixa els tipus d\'interès: el BCE a la zona euro, la Reserva Federal als EUA.'],
+    ['Tipus d\'interès', 'El preu de demanar diners prestats. El banc central fixa el de referència.'],
+    ['Euríbor', 'El tipus al qual els bancs europeus es deixen diners entre ells. Moltes hipoteques s\'hi calculen. Segueix de prop el tipus del BCE.'],
+    ['Paritat de poder adquisitiu (PPA)', 'Una manera de comparar països tenint en compte que la vida no costa el mateix a tot arreu. Un dòlar a l\'Índia compra més que a Suïssa.'],
+    ['Balança per compte corrent', 'La diferència entre el que un país ven i cobra de l\'estranger i el que hi compra i paga.'],
+    ['Taxa d\'atur', 'El percentatge de persones que volen treballar i no troben feina.'],
+    ['Bo del Tresor', 'Un préstec que fas a l\'estat: li deixes diners i te\'ls retorna amb interessos en un termini fix (de mesos a 30 anys). Els "bons a 10 anys" són la referència per saber quant paga un país per endeutar-se.'],
+    ['Rendiment d\'un bo', 'L\'interès que cobra qui compra el bo avui. Si els inversors desconfien, venen bons, el preu baixa i el rendiment puja: l\'estat haurà de pagar més pel deute nou.'],
+    ['Solvència i liquiditat', 'Solvència és poder pagar tots els deutes a la llarga. Liquiditat és tenir els diners el dia que te\'ls demanen. Es pot ser solvent i tenir una crisi de liquiditat.'],
+    ['Mercat repo', 'On bancs i fons es deixen diners a molt curt termini (sovint d\'un dia per l\'altre) donant bons com a garantia. És la "canonada" per on circulen els diners del sistema.'],
+    ['Repo invers de la Fed', 'Un lloc on els fons monetaris poden deixar diners a la Reserva Federal d\'un dia per l\'altre. Va arribar a tenir més de 2 bilions de dòlars; ara és gairebé buit.'],
+    ['Basis trade', 'Estratègia de hedge funds: comprar bons i vendre futurs sobre aquests bons per guanyar una diferència petita, multiplicada amb diners manllevats. Si el finançament s\'encareix, han de vendre de cop.'],
+    ['Carry trade', 'Demanar prestat en una moneda amb tipus baixos (com el ien) per invertir on es cobra més. Si aquella moneda s\'encareix, tothom vol sortir alhora.'],
+    ['Expansió i reducció quantitativa (QE i QT)', 'QE: el banc central compra bons amb diners nous per abaratir el crèdit. QT: fa el contrari, deixa vèncer els bons o els ven, i retira diners del sistema.'],
+    ['Palanquejament', 'Invertir amb diners manllevats. Multiplica els guanys i també les pèrdues, i obliga a vendre si et demanen més garanties.'],
+    ['Progressivitat en fred', 'Quan els trams de l\'IRPF no s\'actualitzen amb la inflació: amb el mateix poder adquisitiu pagues un percentatge més alt d\'impostos.'],
+    ['Cunya fiscal', 'Tot el que l\'estat es queda del cost d\'un treballador: IRPF i cotitzacions del treballador i de l\'empresa.'],
+    ['Remeses', 'Diners que els immigrants envien a les seves famílies al país d\'origen.'],
+    ['Reserves d\'or', 'L\'or que guarden els bancs centrals. No depèn de cap altre país ni es pot congelar si està guardat a casa, per això se\'n compra més des del 2022.'],
   ];
   return `
   <div class="intro">
