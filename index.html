@@ -230,6 +230,15 @@ td.lo { color: var(--good); font-weight: 600; }
 .esc { padding: 12px 14px; border-radius: 12px; background: var(--card-2); border-top: 3px solid var(--muted); }
 .esc.good { border-top-color: var(--good); } .esc.warn { border-top-color: var(--warn); } .esc.bad { border-top-color: var(--bad); }
 
+/* Barra apilada (nòmina) */
+.stack { display: flex; height: 38px; border-radius: 8px; overflow: hidden; gap: 2px; margin: 10px 0 8px; }
+.stack > div { display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; }
+.stack span { color: #fff; font-size: .82rem; font-weight: 650; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+.stackleg { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .86rem; color: var(--text-2); }
+.stackleg span { display: inline-flex; align-items: center; gap: 6px; }
+.stackleg i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.stackleg b { color: var(--text); }
+
 /* Calculadora */
 .calc { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .calc .res { font-size: 1.6rem; font-weight: 650; }
@@ -242,6 +251,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
   .card { padding: 14px; border-radius: 14px; }
   .tile .v { font-size: 1.55rem; }
   .bar { grid-template-columns: 105px 1fr 58px; gap: 6px; }
+  .stack span { font-size: .7rem; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .bar .fill { transition: width .35s ease, left .35s ease; }
@@ -318,7 +328,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -1732,16 +1742,16 @@ function renderImpostos() {
       ['💶 El que cobres net', net / cost * 100, 'var(--s1)'],
     ];
     const mon = ent(p).moneda || '';
+    const u = mon === 'EUR' ? ' €' : ''; // de cada 100 unitats de moneda
     nomina = `
     <div class="card">
       <h3>🧾 On van els diners d'un sou mitjà a ${esc(ent(p).nom)} (${aU})</h3>
       <p class="sub">De cada 100 que paga l'empresa per un treballador sense fills que cobra el sou mitjà:</p>
-      <div style="display:flex;height:34px;border-radius:8px;overflow:hidden;gap:2px;margin:10px 0" role="img" aria-label="Repartiment del cost laboral">
-        ${parts.map(([n, v, c]) => `<div title="${esc(n)}: ${nf(v, 1)}" style="width:${v}%;background:${c}"></div>`).join('')}
+      <div class="stack" role="img" aria-label="Repartiment del cost laboral: ${esc(parts.map(([n, v]) => `${n} ${nf(v, 1)}`).join(', '))}">
+        ${parts.map(([n, v, c]) => `<div title="${esc(n)}: ${nf(v, 1)}${u}" style="flex:${v} 1 0;background:${c}">${v >= 7 ? `<span>${nf(v, 1)}${u}</span>` : ''}</div>`).join('')}
       </div>
-      <div class="grid g2">
-        ${parts.map(([n, v, c]) => `<div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border-radius:3px;background:${c};flex:none"></span>
-          <span style="flex:1">${esc(n)}</span><b class="num">${nf(v, 1)}</b></div>`).join('')}
+      <div class="stackleg">
+        ${parts.map(([n, v, c]) => `<span><i style="background:${c}"></i>${esc(n)} <b class="num">${nf(v, 1)}${u}</b></span>`).join('')}
       </div>
       <p class="sub" style="margin-top:10px">Sou brut: <b>${int(brut)} ${esc(mon)}</b> l'any · net: <b>${int(net)} ${esc(mon)}</b> · cost per a l'empresa: <b>${int(cost)} ${esc(mon)}</b>.
       La <b>cunya fiscal</b> (tot el que es queda l'estat) és del <b>${pct(cunya)}</b>.</p>
