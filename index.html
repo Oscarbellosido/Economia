@@ -105,8 +105,16 @@ header {
   background: var(--card); border: 1px solid var(--border); border-radius: 10px;
   width: 38px; height: 38px; cursor: pointer; font-size: 1.05rem;
 }
-nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 4px 0 10px; scrollbar-width: none; }
+/* Mòbil: una sola fila que llisca, amb una ombra a la dreta que indica que n'hi ha més */
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 4px 40px 10px 0; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); }
 nav.tabs::-webkit-scrollbar { display: none; }
+/* Pantalles amples: totes les pestanyes a la vista, en diverses línies si cal */
+@media (min-width: 720px) {
+  nav.tabs { flex-wrap: wrap; overflow: visible; padding: 2px 0 10px; row-gap: 4px; -webkit-mask-image: none; mask-image: none; }
+  nav.tabs button { padding: 6px 11px; }
+}
 nav.tabs button {
   flex: none; border: 1px solid transparent; background: none; cursor: pointer;
   padding: 7px 12px; border-radius: 999px; color: var(--text-2); white-space: nowrap;
@@ -331,7 +339,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
