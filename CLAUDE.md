@@ -76,6 +76,17 @@ registra el gràfic i `flushCharts()` el pinta quan el contenidor ja té amplada
 `fetch` no funciona amb `file://`: fes servir `npx serve -l 8766 .` (hi ha `.claude/launch.json`).
 Comprova totes les pestanyes, tema clar i fosc, i amplada de mòbil; cap error a la consola.
 
+**Abans de cada commit**, comprova que el JavaScript d'`index.html` no té errors de sintaxi
+(una sola errada deixa l'app en blanc):
+
+```bash
+node -e "const s=require('fs').readFileSync('index.html','utf8');new Function(s.slice(s.indexOf('<script>')+8,s.lastIndexOf('</script>')));console.log('ok')"
+```
+
+⚠️ Si edites el fitxer amb scripts que fan `String.replace(text, nou)`, passa el text nou com a funció
+(`() => nou`): si conté `$'`, `$&` o `$`` (per exemple `' $'`), JavaScript hi insereix trossos del fitxer.
+Això va trencar la v1.6.0.
+
 ## 5. Ritual de versió
 
 Quan es toca `index.html` o `sw.js`: puja `APP_VERSION`, posa `BUILD_DATE` a avui i incrementa
