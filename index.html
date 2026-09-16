@@ -215,6 +215,21 @@ tr.grp td { color: var(--text-2); font-style: italic; }
 td.hi { color: var(--bad); font-weight: 600; }
 td.lo { color: var(--good); font-weight: 600; }
 
+/* Resum: semàfor, fitxes i escenaris */
+.sem { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin-top: 12px; }
+.semi { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--card-2);
+  border-left: 4px solid var(--muted); color: inherit; text-decoration: none; }
+.semi:hover { background: color-mix(in srgb, var(--accent) 8%, var(--card-2)); }
+.semi.good { border-left-color: var(--good); } .semi.warn { border-left-color: var(--warn); } .semi.bad { border-left-color: var(--bad); }
+.semi .semt { font-size: .95rem; }
+.semi .semv { font-size: .78rem; color: var(--accent); margin-top: auto; }
+.fitxes { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.fitxa { margin: 0; background: var(--card-2); box-shadow: none; }
+.fitxa .mini { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .84rem; color: var(--text-2); margin: 6px 0 8px; }
+.fitxa .mini b { color: var(--text); }
+.esc { padding: 12px 14px; border-radius: 12px; background: var(--card-2); border-top: 3px solid var(--muted); }
+.esc.good { border-top-color: var(--good); } .esc.warn { border-top-color: var(--warn); } .esc.bad { border-top-color: var(--bad); }
+
 /* Calculadora */
 .calc { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .calc .res { font-size: 1.6rem; font-weight: 650; }
@@ -241,7 +256,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <button class="iconbtn" id="themeBtn" onclick="toggleTheme()" title="Canvia el tema" aria-label="Canvia el tema">🌓</button>
     </div>
     <nav class="tabs" id="tabs" aria-label="Seccions">
-      <button data-v="inici" onclick="go('inici')">🏠 Inici</button>
+      <button data-v="resum" onclick="go('resum')">🧭 Resum</button>
+      <button data-v="inici" onclick="go('inici')">🏠 El món en xifres</button>
       <button data-v="inflacio" onclick="go('inflacio')">🛒 Inflació</button>
       <button data-v="sous" onclick="go('sous')">💶 Sous</button>
       <button data-v="impostos" onclick="go('impostos')">🧾 Impostos</button>
@@ -260,6 +276,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 <main class="wrap" id="app">
   <div class="loading" id="loading">Carregant dades…</div>
 
+  <!-- ── Resum ── -->
+  <section class="view" id="v-resum"></section>
   <!-- ── Inici ── -->
   <section class="view" id="v-inici"></section>
   <!-- ── Inflació ── -->
@@ -297,7 +315,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -518,10 +536,10 @@ const chart = (id, fn) => { pending.push([id, fn]); return `<div class="chart" i
 function flushCharts() { for (const [id, fn] of pending) { const el = document.getElementById(id); if (el) fn(el); } }
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
-const VIEWS = { inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, tipus: renderTipus,
+const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, tipus: renderTipus,
   creixement: renderCreixement, pais: renderPais, comparar: renderComparar, altra: renderAltra, immigracio: renderImmigracio, aprendre: renderAprendre };
 function go(v) {
-  if (!VIEWS[v]) v = 'inici';
+  if (!VIEWS[v]) v = 'resum';
   view = v;
   if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
@@ -604,6 +622,196 @@ function actualitatHTML() {
     <p class="sub" style="margin-top:8px">📌 <b>Important:</b> les previsions de l'FMI d'aquesta app són de l'<b>${esc(weo || 'última edició')}</b>. Ja inclouen el primer
     cop de la crisi (l'FMI va rebaixar el creixement i va apujar la inflació mundial prevista), però <b>no el rebrot de l'estiu</b>.
     L'FMI en publica una revisió cada octubre; l'app l'agafarà sola a la següent actualització mensual.</p>
+  </div>`;
+}
+
+/* ── 🧭 Resum: què ens espera ───────────────────────────────────────────────── */
+// Conclusions calculades amb les dades (s'actualitzen soles) + context escrit a mà (porta data: RESUM_DATA).
+const RESUM_DATA = '16 de setembre de 2026';
+const artPct = (v, d = 1) => { const t = nf(v, d); return (/^(1|11|8\d*)(,|$)/.test(t) ? "l'" : 'el ') + t + ' %'; };
+const SEM = { good: ['🟢', 'good'], warn: ['🟡', 'warn'], bad: ['🔴', 'bad'] };
+const acum = (c, k, a0, a1) => { let f = 1; for (let a = a0 + 1; a <= a1; a++) { const v = val(c, k, a); if (v == null) return null; f *= 1 + v / 100; } return (f - 1) * 100; };
+
+function semHTML(items) {
+  return `<div class="sem">${items.map(i => `<a class="semi ${SEM[i.e][1]}" href="#${i.link}">
+    <span class="semt">${SEM[i.e][0]} <b>${esc(i.t)}</b></span>
+    <span class="sub">${i.txt}</span><span class="semv">Més detall →</span></a>`).join('')}</div>`;
+}
+
+// Fitxa curta d'un país o zona per a "La resta del món"
+const CONTEXT = {
+  USA: 'Deu més de 40 bilions de dòlars i té un dèficit enorme sense estar en crisi. Depèn que el món continuï comprant els seus bons, i cada cop li costen més.',
+  EURO: 'Creixement feble. França, amb dèficit alt i inestabilitat política, ja paga tant com Itàlia per endeutar-se, i el BCE ja no compra deute com abans.',
+  CHN: 'Creix menys que abans, amb preus gairebé plans (risc de deflació), la crisi immobiliària encara oberta i un deute públic que es dispara. És el país que més or ha comprat des del 2021, segons el que declara.',
+  JPN: 'Té el deute més alt del món. El Banc del Japó en compra menys i el bo a 10 anys paga el màxim en 30 anys, cosa que pot fer tornar a casa diners japonesos invertits fora.',
+  GBR: 'Creix poc i té més inflació que la zona euro. El 2022 el mercat de bons ja va castigar un pla fiscal sense finançar, i en fa por repetir-ho.',
+  IND: 'És l\'economia gran que més creix, amb molta població jove. Però els interessos del deute ja són dels més alts del món.',
+};
+function fitxaPais(c, nom) {
+  const cr = val(c, 'creix', Y), cr1 = val(c, 'creix', Y + 1), inf = val(c, 'infl', Y);
+  const de = val(c, 'deute', Y), deF = val(c, 'deute', Y + 5), it = interessos(c, Y), b = bonUltim(c);
+  const avis = [];
+  if (cr != null && cr < 1) avis.push('economia gairebé aturada');
+  else if (cr != null && cr < 1.5) avis.push('creixement feble');
+  if (cr != null && cr >= 4) avis.push('continua creixent amb força');
+  if (de != null && deF != null && deF - de >= 5) avis.push(`el deute seguirà pujant (${pct(deF, 0)} el ${Y + 5})`);
+  if (de != null && deF != null && de - deF >= 5) avis.push(`el deute baixarà (${pct(deF, 0)} el ${Y + 5})`);
+  if (it != null && it >= 3) avis.push('els interessos ja pesen molt');
+  if (inf != null && inf < 1.5) avis.push('preus gairebé plans');
+  const e = (it != null && it >= 3) || (de != null && deF != null && deF - de >= 10) ? 'bad' : (cr != null && cr < 1.5) || (de || 0) >= 100 ? 'warn' : 'good';
+  return `<div class="card fitxa">
+    <h3>${SEM[e][0]} ${esc(nom)}</h3>
+    <div class="mini">
+      <span>Creix <b>${sgn(cr)} %</b> <small>(${Y + 1}: ${sgn(cr1)} %)</small></span>
+      <span>Inflació <b>${pct(inf)}</b></span>
+      <span>Deute <b>${pct(de, 0)}</b></span>
+      ${it != null ? `<span>Interessos <b>${pct(it)}</b> PIB</span>` : ''}
+      ${b ? `<span>Bo 10 anys <b>${pct(b[1], 2)}</b></span>` : ''}
+    </div>
+    ${avis.length ? `<p class="sub"><b>${esc(avis[0][0].toUpperCase() + avis[0].slice(1))}</b>${avis.slice(1).map(a => ', ' + esc(a)).join('')}.</p>` : ''}
+    <p class="sub">${esc(CONTEXT[c] || '')}</p>
+  </div>`;
+}
+
+function renderResum() {
+  const E = 'ESP', W = 'WEOWORLD';
+  const v = k => val(E, k, Y);
+  const cr = v('creix'), cr1 = val(E, 'creix', Y + 1), crEu = val('EURO', 'creix', Y);
+  const at = v('atur'), atEu = val('EURO', 'atur', Y);
+  const inf = v('infl'), preus = cumInfl(E, 2020, Y);
+  const de = v('deute'), deF = val(E, 'deute', Y + 5);
+  const it = interessos(E, Y), it21 = interessos(E, 2021);
+  const A0 = 2019; // abans de la pandèmia: el 2020 el PIB es va enfonsar i qualsevol comparació hi surt inflada
+  const pobA = val(E, 'pob', A0), pobB = v('pob');
+  const creixAcum = acum(E, 'creix', A0, Y);
+  const perCap = creixAcum != null && pobA && pobB ? ((1 + creixAcum / 100) / (pobB / pobA) - 1) * 100 : null;
+  // habitatge vs sous (reals) des del 2015
+  const H = D.altra?.habitatge?.[E]?.anual, SR = ent(E).s.souReal;
+  const aH = H && SR ? Math.min(Math.max(...Object.keys(H).map(Number)), lastYear(E, 'souReal')) : null;
+  const pis = aH ? (H[aH] / H[2015] - 1) * 100 : null, sou = aH ? (SR[aH] / SR[2015] - 1) * 100 : null;
+  const esforc = pis != null ? ((1 + pis / 100) / (1 + sou / 100) - 1) * 100 : null;
+  // impostos
+  const T = D.fiscal?.impostos?.[E];
+  const aT = T?.irpf ? Math.max(...Object.keys(T.irpf).map(Number)) : null;
+  const irpfPuja = aT && T.irpf[2020] != null ? T.irpf[aT] - T.irpf[2020] : null;
+  let netReal = null, brutReal = null;
+  if (T?.net?.[2000] && T?.brut?.[2000] && aT) { const f = 1 + (cumInfl(E, 2000, aT) || 0) / 100; netReal = (T.net[aT] / T.net[2000] / f - 1) * 100; brutReal = (T.brut[aT] / T.brut[2000] / f - 1) * 100; }
+  // deute: prima
+  const de10 = D.fiscal?.bons?.DEU, es10 = D.fiscal?.bons?.ESP;
+  const mesP = es10 && de10 ? Object.keys(es10).filter(k => de10[k] != null).sort().at(-1) : null;
+  const prima = mesP ? (es10[mesP] - de10[mesP]) * 100 : null;
+  // immigració
+  const IM = D.immi?.eu?.ESP || {};
+  const lastK = k => { const s = IM[k]; if (!s) return null; const a = Math.max(...Object.keys(s).map(Number)); return [a, s[a]]; };
+  const fora = lastK('nascutsFora'), pobF = fora ? IM.pob?.[fora[0]] : null;
+  const ord = lastK('ordres'), ret = ord ? IM.retorns?.[ord[0]] : null;
+  const mig = lastK('migNeta');
+
+  const semEsp = [
+    { t: 'Creixement', link: 'creixement', e: cr >= 1.5 ? 'good' : cr >= 0.5 ? 'warn' : 'bad',
+      txt: `Creix un ${pct(cr)} el ${Y} i un ${pct(cr1)} el ${Y + 1}, més que la zona euro (${pct(crEu)}). L'FMI no preveu cap recessió.` },
+    { t: 'Creixement per habitant', link: 'creixement', e: perCap == null ? 'warn' : perCap >= (Y - A0) * 1.5 ? 'good' : perCap >= (Y - A0) * 0.5 ? 'warn' : 'bad',
+      txt: perCap == null ? 'Sense dades.' : `Del ${A0} (abans de la pandèmia) al ${Y}, el PIB real creix un ${pct(creixAcum, 1)}, però la població també (+${nf(pobB - pobA, 1)} milions). Per habitant, un ${pct(perCap, 1)}: menys d'un ${nf(Math.ceil(perCap / (Y - A0)), 0)} % l'any.` },
+    { t: 'Atur', link: 'creixement', e: at < 7 ? 'good' : at < 12 ? 'warn' : 'bad',
+      txt: `${pct(at)} el ${Y}. Baixa, però continua sent dels més alts d'Europa (zona euro: ${pct(atEu)}).` },
+    { t: 'Preus', link: 'inflacio', e: inf <= 2.5 && preus < 15 ? 'good' : inf <= 4 ? 'warn' : 'bad',
+      txt: `Inflació del ${pct(inf)} el ${Y}, per sobre del 2 % per l'energia. Els preus ja són un ${pct(preus, 0)} més alts que el 2020, i no tornaran enrere.` },
+    { t: 'Habitatge', link: 'altra', e: esforc == null ? 'warn' : esforc > 20 ? 'bad' : esforc > 5 ? 'warn' : 'good',
+      txt: esforc == null ? 'Sense dades.' : `Del 2015 al ${aH}, els pisos pugen un ${pct(pis, 0)} per sobre de la inflació i els sous un ${pct(sou, 0)}. Comprar costa un ${pct(esforc, 0)} més d'anys de sou.` },
+    { t: 'Impostos sobre el sou', link: 'impostos', e: irpfPuja == null ? 'warn' : irpfPuja > 1 ? 'bad' : irpfPuja > 0.3 ? 'warn' : 'good',
+      txt: irpfPuja == null ? 'Sense dades.' : `L'IRPF d'un sou mitjà ha pujat ${nf(irpfPuja, 1)} punts des del 2020 sense tocar la llei. Des del 2000, el sou brut real ${sgn(brutReal, 1)} % i el net ${sgn(netReal, 1)} %.` },
+    { t: 'Deute i interessos', link: 'deute', e: it >= 3 || de >= 110 ? 'bad' : de >= 60 ? 'warn' : 'good',
+      txt: `Deute del ${pct(de, 0)} del PIB; l'FMI preveu que baixi al ${pct(deF, 0)} el ${Y + 5}. Els interessos ja són el ${pct(it)} del PIB (${pct(it21)} el 2021). Prima de risc: ${prima != null ? nf(prima, 0) + ' pb' : '–'}.` },
+    { t: 'Immigració', link: 'immigracio', e: ret != null && ord && ret / ord[1] < 0.3 ? 'warn' : 'good',
+      txt: fora ? `${(s => s[0].toUpperCase() + s.slice(1))(artPct(fora[1] / pobF * 100))} de la població ha nascut a fora i la migració neta és de ${sgn(mig?.[1])} per mil. Sosté el creixement i les cotitzacions, però pressiona l'habitatge. Només es compleix ${artPct(ret / ord[1] * 100, 0)} de les ordres d'expulsió.` : 'Sense dades.' },
+    { t: 'Energia i Ormuz', link: 'inici', e: 'warn',
+      txt: 'El petroli es paga a preu mundial, el compri qui el compri: si l\'estret d\'Ormuz continua inestable, la benzina, el transport i la inflació en patiran.' },
+  ];
+
+  const W1 = val(W, 'creix', Y), W2 = val(W, 'infl', Y), W3 = val(W, 'deute', Y), W4 = val(W, 'deute', Y + 5);
+  const or = D.altra?.or, orCompra = or ? Object.values(or).reduce((s, x) => s + ((x[2025] ?? 0) - (x[2021] ?? x[2025] ?? 0)), 0) : null;
+
+  return `
+  <div class="intro">
+    <h2>🧭 Què ens espera?</h2>
+    <p class="sub">Un resum de tot el que hi ha a l'app, en dos minuts. Hi ha el que diuen les <b>dades oficials</b> (FMI, OCDE, BCE, Eurostat…) i el que
+    <b>no surt als titulars</b>. Toca qualsevol punt per veure'n el detall.</p>
+    <p class="muted">Les xifres s'actualitzen soles cada mes. Els textos de context són de ${RESUM_DATA}. És una interpretació de les dades, no una predicció segura ni un consell d'inversió.</p>
+  </div>
+
+  <div class="card">
+    <h3>🇪🇸 Espanya</h3>
+    <div class="callout">
+      <b>En una frase:</b> Espanya creix més que els seus veïns i té menys deute públic que França o Itàlia, però aquest creixement ve sobretot de tenir
+      <b>més habitants</b>, i la majoria de la gent <b>no el nota a la butxaca</b>: el pis, la inflació acumulada i els impostos se'n mengen gairebé tota la millora.
+    </div>
+    ${semEsp.length ? semHTML(semEsp) : ''}
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <b>📰 La lectura oficial</b>
+        <p class="sub">• Una de les economies grans de la zona euro que més creix.</p>
+        <p class="sub">• L'atur i el deute baixen a poc a poc, i l'FMI preveu que la inflació torni a baixar el ${Y + 1} (${pct(val(E, 'infl', Y + 1))}).</p>
+        <p class="sub">• La prima de risc és baixa: els inversors es fien d'Espanya més que de França o Itàlia.</p>
+        <p class="sub">• La immigració aporta treballadors i cotitzacions en un país que envelleix.</p>
+      </div>
+      <div>
+        <b>🔍 La lectura crítica</b>
+        <p class="sub">• Per habitant, el creixement és molt més modest que el total.</p>
+        <p class="sub">• Els pisos s'han allunyat dels sous, i els joves ho noten més que ningú.</p>
+        <p class="sub">• La progressivitat en fred és una pujada d'impostos que no es vota.</p>
+        <p class="sub">• Els interessos del deute tornen a créixer, i els paguem amb impostos.</p>
+        <p class="sub">• L'atur continua molt per sobre de la mitjana europea, i el control de la immigració irregular és feble.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🌐 La resta del món</h3>
+    <p class="sub">Les grans economies, en una fitxa. 🟢 sense alarmes, 🟡 per vigilar, 🔴 riscos clars.</p>
+    <div class="grid fitxes">
+      ${fitxaPais('USA', '🇺🇸 Estats Units')}
+      ${fitxaPais('EURO', '🇪🇺 Zona euro')}
+      ${fitxaPais('CHN', '🇨🇳 Xina')}
+      ${fitxaPais('JPN', '🇯🇵 Japó')}
+      ${fitxaPais('GBR', '🇬🇧 Regne Unit')}
+      ${fitxaPais('IND', '🇮🇳 Índia')}
+    </div>
+    <p class="muted">Pots veure qualsevol altre país a la <a href="#pais">fitxa de país</a> o a la <a href="#comparar">taula comparativa</a>.</p>
+  </div>
+
+  <div class="card">
+    <h3>🌍 El món</h3>
+    <div class="tiles">
+      ${tile('Creixement mundial', pct(W1), `${Y}, previsió FMI`, levelCreix(W1))}
+      ${tile('Inflació mundial', pct(W2), 'torna a pujar per l\'energia', levelInfl(W2))}
+      ${tile('Deute públic mundial', pct(W3, 0), `del PIB; ${pct(W4, 0)} el ${Y + 5}`, levelDeute(W4))}
+      ${orCompra ? tile('Or comprat pels bancs centrals', '+' + int(orCompra) + ' t', 'del 2021 al 2025 (els que ho declaren)') : ''}
+    </div>
+    <p><b>Les cinc grans tendències</b></p>
+    <p class="sub">1. <b>Deute rècord i cada cop més car.</b> Els estats deuen més que mai i, sense bancs centrals que comprin bons, han de pagar més interessos. <a href="#deute">Deute →</a></p>
+    <p class="sub">2. <b>Energia i geopolítica.</b> La crisi d'Ormuz ha tornat a encarir el petroli i frena la baixada de la inflació. <a href="#inici">Actualitat →</a></p>
+    <p class="sub">3. <b>Desconfiança en el sistema.</b> Els bancs centrals compren or com mai des de les sancions a Rússia, per no dependre del dòlar. <a href="#altra">L'altra cara →</a></p>
+    <p class="sub">4. <b>Actius cars, sous que no els segueixen.</b> Anys de diners fàcils han pujat pisos i borsa; qui només té el sou s'ha quedat enrere. <a href="#altra">L'altra cara →</a></p>
+    <p class="sub">5. <b>Envelliment i migració.</b> Els països rics necessiten treballadors, i la immigració és alhora una solució i una font de tensió. <a href="#immigracio">Immigració →</a></p>
+
+    <p style="margin-top:14px"><b>Tres escenaris per als pròxims anys</b></p>
+    <div class="grid g3">
+      <div class="esc good"><b>🟢 Favorable</b><p class="sub">Ormuz es normalitza, el petroli baixa, la inflació torna al 2 % i els bancs centrals abaixen tipus. Hipoteques més barates i els sous reals remunten.</p></div>
+      <div class="esc warn"><b>🟡 El més probable (FMI)</b><p class="sub">Creixement mundial al voltant del 3 %, inflació que baixa a poc a poc i deute que continua pujant. Tipus que no tornen a zero: diners més cars durant anys.</p></div>
+      <div class="esc bad"><b>🔴 Advers</b><p class="sub">Petroli car durant mesos i un ensurt als mercats de deute (Japó, França o EUA). Tipus a llarg termini que es disparen, estats que retallen i hipoteques més cares.</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>👀 Què convé vigilar els pròxims mesos</h3>
+    <div class="grid g2">
+      <p class="sub">• <b>El preu del petroli i l'estret d'Ormuz</b>, per la inflació i la benzina.</p>
+      <p class="sub">• <b>El BCE</b>: si torna a pujar tipus, l'euríbor i les hipoteques ho notaran. <a href="#tipus">Tipus →</a></p>
+      <p class="sub">• <b>La prima de risc de França i Itàlia</b>: si es dispara, arrossega la resta de la zona euro. <a href="#deute">Deute →</a></p>
+      <p class="sub">• <b>Els bons del Japó i dels EUA</b>, que marquen el preu dels diners a tot el món.</p>
+      <p class="sub">• <b>Les previsions de l'FMI d'octubre</b>, que l'app agafarà sola al novembre.</p>
+      <p class="sub">• <b>Si s'actualitzen els trams de l'IRPF</b> als pressupostos. <a href="#impostos">Impostos →</a></p>
+    </div>
   </div>`;
 }
 
@@ -1718,7 +1926,7 @@ async function init() {
   fixColors(sel, colorOf);
   $('#loading').remove();
   $('#fonts').innerHTML = fontsText();
-  go(location.hash.slice(1) || 'inici');
+  go(location.hash.slice(1) || 'resum');
   setTimeout(() => lsSet(LS_DATA, D), 1000);
 }
 init();

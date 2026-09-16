@@ -97,6 +97,13 @@ han posat dades de delinqüència per nacionalitat: són fàcils de malinterpret
 
 ## 9. Textos d'actualitat (revisar-los!)
 
+El **Resum** (`renderResum()`, pantalla d'entrada) barreja conclusions calculades amb les dades (semàfor,
+fitxes de país) amb text escrit a mà: la frase d'Espanya, les lectures oficial/crítica, `CONTEXT` de cada
+país, les tendències i els escenaris (data a `RESUM_DATA`). Revisa'ls quan canviïn les dades o l'actualitat:
+si una xifra contradiu el text, el text està malament. El creixement per habitant es compara amb el **2019**
+(el 2020 va ser l'any de la caiguda per la pandèmia i infla qualsevol comparació).
+
+
 La targeta "⚠️ Actualitat" d'Inici (`actualitatHTML()`, amb la data a `ACTUALITAT_DATA`) és
 **text escrit a mà** sobre la crisi de l'estret d'Ormuz del 2026. Les xifres que l'acompanyen
 (últim moviment del BCE, edició de l'FMI) surten de les dades, però el relat no. Quan l'usuari

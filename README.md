@@ -28,7 +28,8 @@ Economia/
 
 | Pestanya | Què explica |
 |---|---|
-| 🏠 **Inici** | Les xifres del món d'aquest any, un avís d'actualitat (la crisi d'Ormuz), les 15 economies més grans i tres idees clau |
+| 🧭 **Resum** (pantalla d'entrada) | Què ens espera a Espanya, a les grans economies i al món: un semàfor amb les conclusions, la lectura oficial i la crítica, tres escenaris i què convé vigilar. Cada punt porta a la pestanya amb el detall |
+| 🏠 **El món en xifres** | Les xifres del món d'aquest any, un avís d'actualitat (la crisi d'Ormuz), les 15 economies més grans i tres idees clau |
 | 🛒 **Inflació** | Inflació anual per país des del 2000, quant han pujat els preus des del 2020 i una calculadora de "què valen els teus diners" |
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
 | 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal i el sou brut i net descomptant la inflació |
