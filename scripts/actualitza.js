@@ -373,6 +373,44 @@ async function main() {
     console.log('FMI or mensual ok', Object.keys(orM).length, 'països');
   } catch (e) { console.warn('FMI or mensual ha fallat:', e.message); }
 
+  // ════ Demografia, pensions i habitatge nou (Eurostat) ════
+  out.demo = {};
+  try {
+    const geos = Object.fromEntries(Object.entries(EU_GEO).map(([k, g]) => [g, k]));
+    const q = Object.keys(geos).map(g => 'geo=' + g).join('&');
+    const E = async (ds, params, fix = {}) => jsonstat(await get(`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${ds}?${q}&${params}`))
+      .filter(r => Object.entries(fix).every(([d, v]) => r[d] === v));
+    const demo = {};
+    const put = (rows, clau, f = x => x) => { for (const r of rows) ((demo[geos[r.geo]] ||= {})[clau] ||= {})[r.time] = f(r.value); };
+    put(await E('demo_pjanind', `indic_de=OLDDEP1&sinceTimePeriod=${ANY0}`), 'depVell');
+    const anysProj = [2030, 2035, 2040, 2045, 2050, 2055, 2060, 2070, 2080, 2090, 2100].map(a => 'time=' + a).join('&');
+    put(await E('proj_23ndbi', `indic_de=OLDDEP1&projection=BSL&${anysProj}`), 'depVellProj');
+    put(await E('tps00103', `unit=PC_GDP&spdepm=TOTAL&spdepb=TOTAL&sinceTimePeriod=${ANY0}`), 'pensions');
+    put(await E('demo_find', `indic_de=TOTFERRT&sinceTimePeriod=${ANY0}`), 'fecunditat');
+    put(await E('demo_gind', `indic_de=GROW&sinceTimePeriod=${ANY0}`), 'creixPob');
+    put(await E('ilc_lvph01', `unit=AVG&sinceTimePeriod=${ANY0}`), 'llar');
+    put(await E('sts_cobp_a', `indic_bt=BPRM_DW&unit=THS&s_adj=NSA&sinceTimePeriod=${ANY0}`, { cpa2_1: 'CPA_F41001_X_410014' }), 'llicencies', v => Math.round(v * 1000));
+    out.demo.eu = demo;
+    out.fonts.demo = { font: 'Eurostat · demografia, projeccions (EUROPOP2023), despesa en pensions i llicències d\'obra', unitat: '' };
+    console.log('Eurostat demografia ok', Object.keys(demo).length, 'països');
+  } catch (e) { console.warn('Eurostat demografia ha fallat:', e.message); }
+
+  // ════ Divises ════
+  out.divises = {};
+  try {
+    const codis = { US: 'USD', XM: 'EUR', JP: 'JPY', CN: 'CNY', GB: 'GBP', CH: 'CHF' };
+    const text = await get(`https://stats.bis.org/api/v2/data/dataflow/BIS/WS_EER/1.0/M.N.B.${Object.keys(codis).join('+')}?startPeriod=${ANY0}-01&format=csv`, 'text');
+    const eer = {};
+    for (const f of csv(text)) if (f.OBS_VALUE !== '' && f.OBS_VALUE !== 'NaN') (eer[codis[f.REF_AREA]] ||= {})[f.TIME_PERIOD] = r1(+f.OBS_VALUE);
+    out.divises.eer = eer;
+    const ecb = csv(await get(`https://data-api.ecb.europa.eu/service/data/EXR/M.USD+JPY+GBP+CNY+CHF.EUR.SP00.A?startPeriod=${ANY0}-01&format=csvdata`, 'text'));
+    const eur = {};
+    for (const f of ecb) if (f.OBS_VALUE !== '') (eur[f.CURRENCY] ||= {})[f.TIME_PERIOD] = +(+f.OBS_VALUE).toFixed(4);
+    out.divises.eur = eur;
+    out.fonts.divises = { font: 'BIS · Effective exchange rates · BCE · tipus de canvi de l\'euro', unitat: 'Índex 2020 = 100 · unitats per euro' };
+    console.log('Divises ok', Object.keys(eer).length, Object.keys(eur).length);
+  } catch (e) { console.warn('Divises ha fallat:', e.message); }
+
   // ════ Immigració ════
   out.immi = {};
 
@@ -463,6 +501,8 @@ async function main() {
     for (const c of ['souReal', 'souNom']) if (!out.fonts[c] && vell.fonts[c]) out.fonts[c] = vell.fonts[c];
     for (const c of ['habitatge', 'balanc', 'diners', 'or']) if (!out.altra[c] && vell.altra?.[c]) { out.altra[c] = vell.altra[c]; out.fonts[c] = vell.fonts[c]; }
     if (!out.altra.orNoms && vell.altra?.orNoms) out.altra.orNoms = vell.altra.orNoms;
+    if (!out.demo.eu && vell.demo?.eu) { out.demo.eu = vell.demo.eu; out.fonts.demo = vell.fonts.demo; }
+    for (const c of ['eer', 'eur']) if (!out.divises[c] && vell.divises?.[c]) { out.divises[c] = vell.divises[c]; out.fonts.divises = vell.fonts.divises; }
     for (const [c, f] of [['deute', 'euaDeute'], ['deuteUltim', null], ['tenidors', 'euaTic'], ['rrp', 'euaRrp'], ['rrpUltim', null], ['rrpMax', null]])
       if (!out.eua[c] && vell.eua?.[c]) { out.eua[c] = vell.eua[c]; if (f) out.fonts[f] = vell.fonts[f]; }
     if (!out.altra.orMensual && vell.altra?.orMensual) out.altra.orMensual = vell.altra.orMensual;
