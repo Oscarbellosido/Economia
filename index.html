@@ -283,7 +283,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -558,6 +558,41 @@ function levelCreix(v) {
 }
 const tile = (k, v, d, badge = '') => `<div class="tile"><div class="k">${k}</div><div class="v num">${v}</div><div class="d">${d} ${badge}</div></div>`;
 
+// Últim canvi del tipus oficial d'un banc central: {mes, de, a}
+function lastChange(b) {
+  const e = Object.entries(D.tipus?.[b] || {}).sort((x, y) => x[0] < y[0] ? -1 : 1);
+  for (let i = e.length - 1; i > 0; i--) if (e[i][1] !== e[i - 1][1]) return { mes: e[i][0], de: e[i - 1][1], a: e[i][1] };
+  return null;
+}
+
+/* ── Actualitat ─────────────────────────────────────────────────────────────── */
+// Text escrit a mà: cal revisar-lo quan canviï la situació (porta la data a la vista).
+const ACTUALITAT_DATA = '16 de setembre de 2026';
+function actualitatHTML() {
+  // "World Economic Outlook (April 2026)" → "edició d'abril del 2026"
+  const m = (D.fonts?.infl?.font || '').match(/\((\w+) (\d{4})\)/);
+  const MES_EN = { January: 'gener', April: 'abril', July: 'juliol', October: 'octubre' };
+  const weo = m ? `edició ${/^[ao]/i.test(MES_EN[m[1]] || m[1]) ? "d'" : 'de '}${MES_EN[m[1]] || m[1]} del ${m[2]}` : '';
+  const bce = lastChange('XM');
+  return `<div class="card" style="border-color:var(--warn)">
+    <h3>⚠️ Actualitat: la crisi de l'estret d'Ormuz</h3>
+    <p class="muted">Situació a ${ACTUALITAT_DATA}</p>
+    <p>Per l'estret d'Ormuz, entre l'Iran i la península Aràbiga, hi passa prop d'<b>una cinquena part del petroli del món</b>.
+    Des del març del 2026, amb la guerra amb l'Iran, el trànsit s'ha tallat o reduït molt. L'alto el foc de l'abril no l'ha normalitzat:
+    el pas continua inestable, amb un bloqueig dels EUA i nous atacs a la regió. El petroli Brent ha passat de rondar els 70 $ el juliol a
+    acostar-se als 100 $ el setembre.</p>
+    <div class="flow">
+      <div class="step"><b>🛢️ Petroli més car</b>Menys vaixells poden passar per Ormuz.</div><div class="arr">→</div>
+      <div class="step"><b>⛽ Carburants i transport</b>Pugen la benzina, el gasoil i el gas.</div><div class="arr">→</div>
+      <div class="step"><b>🛒 Més inflació</b>Tot el que es transporta s'encareix.</div><div class="arr">→</div>
+      <div class="step"><b>📈 Tipus d'interès</b>${bce && bce.a > bce.de ? `El BCE els va apujar el ${monthLabel(monthX(bce.mes))}, fins al ${pct(bce.a, 2)}.` : 'Els bancs centrals deixen de baixar-los o els apugen.'}</div>
+    </div>
+    <p class="sub" style="margin-top:8px">📌 <b>Important:</b> les previsions de l'FMI d'aquesta app són de l'<b>${esc(weo || 'última edició')}</b>. Ja inclouen el primer
+    cop de la crisi (l'FMI va rebaixar el creixement i va apujar la inflació mundial prevista), però <b>no el rebrot de l'estiu</b>.
+    L'FMI en publica una revisió cada octubre; l'app l'agafarà sola a la següent actualització mensual.</p>
+  </div>`;
+}
+
 /* ── 🏠 Inici ───────────────────────────────────────────────────────────────── */
 function renderInici() {
   const W = 'WEOWORLD';
@@ -566,6 +601,8 @@ function renderInici() {
   const inflMax = Math.max(...pts(W, 'infl', 2015, Y).map(p => p[1]));
   const anyMax = pts(W, 'infl', 2015, Y).find(p => p[1] === inflMax)?.[0];
   const pibTop = top.reduce((s, c) => s + (val(c, 'quota', Y) || 0), 0);
+  const inflPuja = val(W, 'infl', Y) > val(W, 'infl', Y - 1);
+  const bce = lastChange('XM');
   return `
   <div class="intro">
     <h2>Com va el món el ${Y}?</h2>
@@ -578,6 +615,7 @@ function renderInici() {
     ${tile('🏦 Deute públic mundial', pct(val(W, 'deute', Y), 0), 'del PIB mundial', levelDeute(val(W, 'deute', Y)))}
     ${tile('💰 Economia mundial', money(val(W, 'pib', Y)), 'Valor de tot el que es produeix en un any')}
   </div>
+  ${actualitatHTML()}
 
   <div class="grid g2">
     <div class="card">
@@ -587,7 +625,7 @@ function renderInici() {
     </div>
     <div class="card">
       <h3>Inflació: la pujada de preus al món</h3>
-      <p class="sub">Percentatge anual. Després de la pandèmia i la guerra d'Ucraïna els preus es van disparar; ara tornen a la normalitat.</p>
+      <p class="sub">Percentatge anual. Després de la pandèmia i la guerra d'Ucraïna els preus es van disparar. ${inflPuja ? `Quan semblava que es calmaven, la crisi d'Ormuz els torna a empènyer el ${Y}.` : 'Després han anat tornant a la normalitat.'}</p>
       ${chart('c-home-infl', el => lineChart(el, { title: 'Inflació', forecast: Y, fmt: v => pct(v),
         series: [['WEOWORLD', 1], ['ADVEC', 0], ['OEMDC', 2]].map(([c, i]) => ({ name: ent(c).nom, color: `var(--s${i + 1})`, pts: pts(c, 'infl', 2000) })) }))}
     </div>
@@ -596,14 +634,16 @@ function renderInici() {
   <div class="card">
     <h3>Tres coses per entendre el moment actual</h3>
     <div class="grid g3" style="margin-top:10px">
-      <div class="concept"><div class="emo">🛒</div><b>Els preus ja no pugen tan de pressa…</b>
-        <p class="sub">…però no han baixat. El que va pujar el 2021-2023 es queda. Per això molta gent encara nota que tot és més car.
+      <div class="concept"><div class="emo">🛒</div><b>${inflPuja ? 'Els preus tornen a pujar més de pressa' : 'Els preus ja no pugen tan de pressa…'}</b>
+        <p class="sub">${inflPuja ? `L'FMI preveu un ${pct(val(W, 'infl', Y))} d'inflació mundial el ${Y}, més que el ${Y - 1} (${pct(val(W, 'infl', Y - 1))}), sobretot per l'energia.` : '…però no han baixat.'}
+        El que va pujar el 2021-2023 no ha tornat enrere; per això molta gent nota que tot és més car.
         <a href="#inflacio">Mira-ho →</a></p></div>
       <div class="concept"><div class="emo">🏦</div><b>Els estats deuen més que mai</b>
         <p class="sub">${alts.length} dels ${countries().length} països d'aquesta app deuen més del 100 % del que produeixen en un any, entre ells ${alts.slice(0, 4).map(c => esc(ent(c).nom)).join(', ')}.
         <a href="#deute">Mira-ho →</a></p></div>
       <div class="concept"><div class="emo">📈</div><b>Els diners tornen a tenir preu</b>
-        <p class="sub">Del 2022 al 2023 els bancs centrals van pujar els tipus d'interès per frenar la inflació. Ara els abaixen a poc a poc.
+        <p class="sub">Del 2022 al 2023 els bancs centrals van pujar els tipus d'interès per frenar la inflació i després els van abaixar.
+        ${bce ? `L'últim moviment del BCE va ser ${bce.a > bce.de ? 'una <b>pujada</b>' : 'una baixada'}: el ${monthLabel(monthX(bce.mes))}, del ${pct(bce.de, 2)} al ${pct(bce.a, 2)}.` : ''}
         <a href="#tipus">Mira-ho →</a></p></div>
     </div>
   </div>`;
@@ -657,6 +697,7 @@ function renderInflacio() {
       <p class="muted">Calculat amb la inflació mitjana anual de l'FMI. Els anys a partir del ${Y} són previsió.</p>
     </div>
   </div>
+  <div class="callout">⚠️ El ${Y} la crisi de l'estret d'Ormuz ha tornat a encarir el petroli. Les previsions de l'FMI que es veuen aquí encara no recullen el rebrot de l'estiu. <a href="#inici">Més informació →</a></div>
   <div class="card">
     <h3>Per què va pujar tant el 2022?</h3>
     <div class="flow">

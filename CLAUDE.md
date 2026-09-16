@@ -68,3 +68,11 @@ han de quedar clares com a tals.
 
 ⚠️ La carpeta `C:\Users\Carles` sencera és un repositori git. Aquest projecte té el **seu propi**
 `.git`; comprova `git rev-parse --show-toplevel` abans de fer cap commit.
+
+## 8. Textos d'actualitat (revisar-los!)
+
+La targeta "⚠️ Actualitat" d'Inici (`actualitatHTML()`, amb la data a `ACTUALITAT_DATA`) és
+**text escrit a mà** sobre la crisi de l'estret d'Ormuz del 2026. Les xifres que l'acompanyen
+(últim moviment del BCE, edició de l'FMI) surten de les dades, però el relat no. Quan l'usuari
+torni a treballar en el projecte, comprova si la situació ha canviat i actualitza el text i la
+data, o treu la targeta si ja no és actualitat. No hi posis res que no estigui contrastat.

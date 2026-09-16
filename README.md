@@ -28,7 +28,7 @@ Economia/
 
 | Pestanya | Què explica |
 |---|---|
-| 🏠 **Inici** | Les xifres del món d'aquest any, les 15 economies més grans i tres idees clau |
+| 🏠 **Inici** | Les xifres del món d'aquest any, un avís d'actualitat (la crisi d'Ormuz), les 15 economies més grans i tres idees clau |
 | 🛒 **Inflació** | Inflació anual per país des del 2000, quant han pujat els preus des del 2020 i una calculadora de "què valen els teus diners" |
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
 | 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses) i dèficit |
