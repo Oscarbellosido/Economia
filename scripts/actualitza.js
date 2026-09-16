@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFile } = require('child_process');
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (Economia app; +https://github.com/Oscarbellosido)' };
 const ANY0 = 2000;
@@ -55,10 +56,27 @@ async function get(url, as = 'json', intents = 3, espera = 5000, extra = {}) {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return as === 'json' ? await r.json() : await r.text();
     } catch (e) {
-      if (i >= intents) throw new Error(`${url}: ${e.message}`);
+      if (i >= intents) {
+        // Últim recurs: curl. L'OCDE retorna HTTP 500 a moltes peticions fetch de Node
+        // (sobretot des de GitHub Actions) però respon bé a curl.
+        try {
+          const text = await curl(url, extra);
+          console.warn('  (recuperat amb curl)', url.slice(0, 60));
+          return as === 'json' ? JSON.parse(text) : text;
+        } catch (e2) {
+          throw new Error(`${url}: ${e.message} · curl: ${e2.message}`);
+        }
+      }
       await new Promise(res => setTimeout(res, espera * i));
     }
   }
+}
+
+function curl(url, extra = {}) {
+  const args = ['-sS', '--fail', '--max-time', '90', '-A', UA['User-Agent']];
+  for (const [k, v] of Object.entries(extra)) args.push('-H', `${k}: ${v}`);
+  args.push(url);
+  return new Promise((ok, ko) => execFile('curl', args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout) => err ? ko(err) : ok(stdout)));
 }
 
 // CSV senzill amb cometes (l'OCDE i el BIS en fan servir)
@@ -109,11 +127,11 @@ async function main() {
   // souReal = dòlars PPA a preus constants (comparable entre països)
   // souNom  = moneda nacional a preus corrents (per comparar-ne el creixement amb la inflació)
   // Es demana el conjunt sencer ("all", ~700 KB): la consulta amb llista de països falla sovint amb HTTP 500.
-  // L'OCDE té un límit de consultes per hora (HTTP 429) i errors 500 puntuals: una sola consulta,
-  // amb reintents ben espaiats. Si tot falla, es conserven els sous de la descàrrega anterior.
+  // L'OCDE té un límit de consultes per hora (HTTP 429) i dona errors 500 a fetch de Node: una sola consulta,
+  // amb reintents i, al final, curl (vegeu get). Si tot falla, es conserven els sous de la descàrrega anterior.
   if (!process.env.SENSE_OCDE) try {
     const url = `https://sdmx.oecd.org/public/rest/data/OECD.ELS.SAE,DSD_EARNINGS@AV_AN_WAGE,1.0/all?startPeriod=${ANY0}&format=csvfilewithlabels`;
-    const files = csv(await get(url, 'text', 4, 30000));
+    const files = csv(await get(url, 'text', 2, 20000));
     for (const f of files) {
       const p = out.paisos[f.REF_AREA];
       if (!p || f.OBS_VALUE === '' || f.MEASURE !== 'WG' || f.AGGREGATION_OPERATION !== 'MEAN') continue;

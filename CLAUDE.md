@@ -32,8 +32,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
 - Afegir un país: una línia a `PAISOS` del script (nom català, bandera, codi BIS, és OCDE).
   Afegir un indicador FMI: una línia a `FMI`. Torna a executar el script.
 - L'OCDE falla amb HTTP 500 si es demana una llista de països: es baixa el conjunt `all`.
-  Des dels runners de GitHub Actions respon **sempre HTTP 500** (comprovat dues vegades el 2026-09-16),
-  mentre que des de l'ordinador del propietari funciona: els sous s'actualitzen a mà un cop l'any.
+  Retorna HTTP 500 a molts `fetch` de Node (sobretot des de GitHub Actions) però respon bé a `curl`:
+  per això `get()` acaba provant amb `curl` quan fetch falla (comprovat el 2026-09-16).
   També té un **límit de consultes per hora (HTTP 429)**: no facis proves repetides ni consultes país per país.
 - Si una font falla, el script conserva la versió anterior d'aquella font. Si l'FMI arriba
   buit, no desa res.
