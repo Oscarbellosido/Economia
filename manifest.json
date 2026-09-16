@@ -1,0 +1,22 @@
+{
+  "name": "Economia Mundial — explicada fàcil",
+  "short_name": "Economia",
+  "description": "Deute, inflació, sous, tipus d'interès i creixement dels principals països, explicats de manera senzilla.",
+  "lang": "ca",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c1626",
+  "theme_color": "#0c1626",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Inflació", "url": "./#inflacio" },
+    { "name": "Sous", "url": "./#sous" },
+    { "name": "Deute", "url": "./#deute" },
+    { "name": "Tipus d'interès", "url": "./#tipus" }
+  ]
+}

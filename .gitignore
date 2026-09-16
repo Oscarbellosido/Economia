@@ -1,0 +1,3 @@
+.claude/
+*.txt
+node_modules/
