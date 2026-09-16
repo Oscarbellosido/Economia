@@ -328,7 +328,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.3';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -1722,6 +1722,44 @@ const IMP = () => D.fiscal?.impostos || {};
 const impV = (c, k, a) => IMP()[c]?.[k]?.[a];
 const impLast = c => { const s = IMP()[c]?.irpf; return s ? Math.max(...Object.keys(s).map(Number)) : null; };
 
+// Exemple numèric de progressivitat en fred amb dos trams inventats (20 % fins a 20.000 €, 30 % a partir d'aquí)
+let fredInfl = lsGet('economia_fredinfl', 10);
+function exempleFred() {
+  const LIM = 20000, T1 = 0.20, T2 = 0.30, SOU = 20000;
+  const imp = (sou, lim) => Math.min(sou, lim) * T1 + Math.max(0, sou - lim) * T2;
+  const f = 1 + fredInfl / 100, sou2 = SOU * f;
+  const cas = [
+    { t: 'Abans', sou: SOU, lim: LIM },
+    { t: 'Trams sense actualitzar', sou: sou2, lim: LIM },
+    { t: 'Trams actualitzats', sou: sou2, lim: LIM * f },
+  ].map((c, k) => { const i = imp(c.sou, c.lim), net = c.sou - i; return { ...c, i, net, real: k === 0 ? net : net / f }; });
+  const perdua = cas[0].real - cas[1].real;
+  const eur = v => int(v) + ' €';
+  return `
+    <div class="callout" style="margin-top:14px">
+      <b>🧮 Un exemple amb números</b>
+      <p class="sub">Regles inventades i simplificades: els primers <b>20.000 €</b> del sou paguen un <b>20 %</b> i el que passa d'aquí, un <b>30 %</b>.
+      Cobres 20.000 € i un any la inflació és del
+      <select onchange="fredInfl=+this.value;lsSet('economia_fredinfl',fredInfl);renderView()" aria-label="Inflació de l'exemple">${[2, 5, 10, 20].map(v => `<option value="${v}" ${v === fredInfl ? 'selected' : ''}>${v} %</option>`).join('')}</select>.
+      L'empresa t'apuja el sou exactament el mateix.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th>${cas.map(c => `<th>${esc(c.t)}</th>`).join('')}</tr></thead>
+        <tbody>
+          <tr><td>Límit del primer tram</td>${cas.map(c => `<td class="num">${eur(c.lim)}</td>`).join('')}</tr>
+          <tr><td>Sou brut</td>${cas.map(c => `<td class="num">${eur(c.sou)}</td>`).join('')}</tr>
+          <tr><td>IRPF</td>${cas.map(c => `<td class="num">${eur(c.i)}</td>`).join('')}</tr>
+          <tr><td>% del sou que pagues</td>${cas.map((c, k) => `<td class="num ${k === 1 ? 'hi' : ''}">${pct(c.i / c.sou * 100)}</td>`).join('')}</tr>
+          <tr><td>Sou net</td>${cas.map(c => `<td class="num">${eur(c.net)}</td>`).join('')}</tr>
+          <tr><td><b>Sou net en diners d'abans</b></td>${cas.map((c, k) => `<td class="num ${k === 1 ? 'hi' : ''}"><b>${eur(c.real)}</b></td>`).join('')}</tr>
+        </tbody>
+      </table></div>
+      <p class="sub" style="margin-top:8px">Si els trams <b>no s'actualitzen</b>, passes a pagar un ${pct(cas[1].i / cas[1].sou * 100)} en lloc d'un 20 % i el teu sou net compra
+      <b>${eur(perdua)} menys</b> que abans, encara que t'hagin apujat el sou com els preus. Aquests diners se'ls queda Hisenda.
+      Si <b>s'actualitzen</b>, quedes exactament igual que abans.</p>
+      <p class="muted">"En diners d'abans" vol dir descomptant la inflació: el sou net dividit per ${nf(f, 2)}. L'IRPF real té més trams, mínims personals i deduccions, però el mecanisme és el mateix.</p>
+    </div>`;
+}
+
 function renderImpostos() {
   const T = IMP();
   const paisos = countries().filter(c => T[c]?.irpf);
@@ -1826,6 +1864,7 @@ function renderImpostos() {
       <div class="step"><b>🪜 Tram més alt</b>Els trams de l'IRPF no s'han mogut: part del sou tributa a un tipus més alt.</div><div class="arr">→</div>
       <div class="step"><b>📉 Net real més baix</b>Pagues un % més gran i el teu sou net compra menys que abans.</div>
     </div>
+    ${exempleFred()}
     <p class="sub" style="margin-top:10px">La solució tècnica és senzilla: <b>actualitzar els trams amb la inflació cada any</b>, com fan per llei alguns països.
     Si no es fa, és una pujada d'impostos que no passa per cap votació. A Espanya, l'escala estatal no s'ha actualitzat amb la inflació dels últims anys;
     algunes comunitats sí que han ajustat la seva part.</p>
