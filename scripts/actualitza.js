@@ -464,6 +464,37 @@ async function main() {
     console.log('Eurostat demografia ok', Object.keys(demo).length, 'països');
   } catch (e) { console.warn('Eurostat demografia ha fallat:', e.message); }
 
+
+  // ════ Productivitat, inversió i renda de les llars (Eurostat) ════
+  // Respon a la pregunta clau: el creixement ve de treballar més hores o de produir més per hora?
+  out.prod = {};
+  try {
+    const geos = Object.fromEntries(Object.entries(EU_GEO).map(([k, g]) => [g, k]));
+    const q = Object.keys(geos).map(g => 'geo=' + g).join('&');
+    const E = async (ds, params) => jsonstat(await get(`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${ds}?${q}&sinceTimePeriod=${ANY0}&${params}`));
+    const pr = {};
+    const put = (rows, clau, f = x => x) => { for (const r of rows) ((pr[geos[r.geo]] ||= {})[clau] ||= {})[r.time] = f(r.value); };
+    put(await E('nama_10_gdp', 'na_item=B1GQ&unit=CLV15_MEUR'), 'pibReal', Math.round);
+    put(await E('nama_10_pe', 'na_item=POP_NC&unit=THS_PER'), 'pob', Math.round);
+    put(await E('nama_10_pe', 'na_item=EMP_DC&unit=THS_PER'), 'ocupats', Math.round);
+    put(await E('nama_10_a10_e', 'na_item=EMP_DC&unit=THS_HW&nace_r2=TOTAL'), 'hores', v => Math.round(v / 1000)); // milions d'hores
+    // PIB en paritat de poder adquisitiu: dividit per les hores, dona la productivitat comparable entre països
+    put(await E('nama_10_gdp', 'na_item=B1GQ&unit=CP_MPPS_EU27_2020'), 'pibPPA', Math.round);
+    // inversió (formació bruta de capital fix) sobre el PIB, tots dos a preus corrents
+    const inv = {}, pibN = {};
+    for (const r of await E('nama_10_gdp', 'na_item=P51G&unit=CP_MEUR')) (inv[geos[r.geo]] ||= {})[r.time] = r.value;
+    for (const r of await E('nama_10_gdp', 'na_item=B1GQ&unit=CP_MEUR')) (pibN[geos[r.geo]] ||= {})[r.time] = r.value;
+    for (const c of Object.keys(inv)) for (const a of Object.keys(inv[c])) if (pibN[c]?.[a]) ((pr[c] ||= {}).inversio ||= {})[a] = r1(inv[c][a] / pibN[c][a] * 100);
+    for (const c of Object.keys(pibN)) for (const a of Object.keys(pibN[c])) ((pr[c] ||= {}).pibNom ||= {})[a] = Math.round(pibN[c][a]);
+    // renda de les llars: mitjana i mediana. La distància entre totes dues diu com es reparteix
+    put(await E('ilc_di03', 'statinfo=MED_EI&unit=EUR&age=TOTAL&sex=T'), 'rendaMed', Math.round);
+    put(await E('ilc_di03', 'statinfo=MEAN_EI&unit=EUR&age=TOTAL&sex=T'), 'rendaMitj', Math.round);
+    out.prod.eu = pr;
+    out.fonts.prod = { font: 'Eurostat · comptes nacionals (PIB, població, ocupació i hores), renda de les llars (EU-SILC)',
+      unitat: 'Milions d\'euros del 2015 · milers de persones · milions d\'hores · % de la mitjana de la UE · % del PIB · euros l\'any' };
+    console.log('Eurostat productivitat ok', Object.keys(pr).length, 'països');
+  } catch (e) { console.warn('Eurostat productivitat ha fallat:', e.message); }
+
   // ════ Divises ════
   out.divises = {};
   try {
@@ -575,6 +606,7 @@ async function main() {
     if (!out.fonts.borsaCap && vell.fonts.borsaCap) out.fonts.borsaCap = vell.fonts.borsaCap;
     for (const c of ['USA', 'JPN', 'EURO']) if (!out.llarg[c] && vell.llarg?.[c]) out.llarg[c] = vell.llarg[c];
     if (!out.demo.eu && vell.demo?.eu) { out.demo.eu = vell.demo.eu; out.fonts.demo = vell.fonts.demo; }
+    if (!out.prod.eu && vell.prod?.eu) { out.prod.eu = vell.prod.eu; out.fonts.prod = vell.fonts.prod; }
     for (const c of ['eer', 'eur']) if (!out.divises[c] && vell.divises?.[c]) { out.divises[c] = vell.divises[c]; out.fonts.divises = vell.fonts.divises; }
     for (const [c, f] of [['deute', 'euaDeute'], ['deuteUltim', null], ['tenidors', 'euaTic'], ['rrp', 'euaRrp'], ['rrpUltim', null], ['rrpMax', null]])
       if (!out.eua[c] && vell.eua?.[c]) { out.eua[c] = vell.eua[c]; if (f) out.fonts[f] = vell.fonts[f]; }

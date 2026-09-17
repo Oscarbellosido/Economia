@@ -44,7 +44,7 @@ Economia/
 | 💵 **Deute dels EUA** | El deute dels EUA (dada diària), qui té els seus bons a l'estranger (governs vs inversors privats), el "coixí" de liquiditat de la Fed que s'ha buidat i com s'encalla el sistema (2019, Londres 2022, Japó 2024) |
 | 📊 **Borsa** | Índex de la borsa de cada país, valor de la borsa en % del PIB ("indicador Buffett"), borsa vs economia i sous, i per què es parla de bombolla i de concentració en la IA |
 | 📈 **Tipus d'interès** | Els tipus dels bancs centrals des del 2007 i els tipus reals (tipus menys inflació) |
-| 🏭 **Creixement** | Creixement del PIB, atur i riquesa per habitant |
+| 🏭 **Creixement** | Creixement del PIB, atur, riquesa per habitant, d'on surt el creixement (més hores o més productivitat), producció per hora, inversió i renda mediana |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
 | 🔍 **L'altra cara** | El que no surt als titulars: pisos vs sous, la "màquina de fer diners" dels bancs centrals, diners vs economia a la zona euro, la febre de l'or i per què la inflació oficial pot semblar baixa |
 | 🧳 **Immigració** | Quanta n'hi ha i com arriba, immigració irregular i expulsions que es fan efectives, feina i pobresa, remeses, què aporta i què costa, i el percentatge de població nascuda a fora a **qualsevol poble de Catalunya** |

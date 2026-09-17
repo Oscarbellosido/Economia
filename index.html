@@ -271,6 +271,15 @@ abbr.terme { text-decoration: none; border-bottom: 1.5px dotted var(--accent); c
   border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: .86rem; box-shadow: 0 8px 24px var(--shadow); }
 #glostip p { margin: 4px 0 6px; color: var(--text-2); }
 
+/* Lletra petita (crítica de les xifres oficials) */
+details.petita { margin: 10px 0 0; border: 1px dashed var(--border); border-radius: 12px; background: var(--card-2); }
+details.petita > summary { list-style: none; cursor: pointer; padding: 9px 14px; font-size: .88rem; font-weight: 600; color: var(--text-2); }
+details.petita > summary::-webkit-details-marker { display: none; }
+details.petita > summary:hover { color: var(--accent); }
+details.petita > div { padding: 0 14px 10px; }
+details.petita ul { margin: 0; padding-left: 18px; }
+details.petita li { margin: 6px 0; font-size: .9rem; color: var(--text-2); line-height: 1.5; }
+
 /* Resum: semàfor, fitxes i escenaris */
 .sem { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin-top: 12px; }
 .semi { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--card-2);
@@ -375,7 +384,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.9.2';
+const APP_VERSION = '1.10.0';
 const BUILD_DATE = '2026-09-17';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -1088,6 +1097,7 @@ function renderInflacio() {
       <div class="step"><b>3. Guerra d'Ucraïna</b>Gas, petroli i cereals es disparen.</div><div class="arr">→</div>
       <div class="step"><b>4. Contagi</b>L'energia encareix el transport i tota la resta de productes.</div>
     </div>
+    ${petita(LP.ipc())}
     <p class="sub" style="margin-top:8px">La inflació de 2022 no va ser només "massa diners": va ser una barreja de menys oferta, més demanda i energia cara. Per frenar-la, els bancs centrals van pujar els <a href="#tipus">tipus d'interès</a>.</p>
   </div>`;
 }
@@ -1146,7 +1156,8 @@ function renderSous() {
   </div>
   <p class="muted">L'OCDE calcula el sou real amb els preus del consum privat, no exactament amb l'IPC. Per això el poder adquisitiu no sempre és
   exactament la pujada del sou menys la inflació de l'FMI que es mostra al costat.
-  El sou mitjà inclou tots els assalariats a temps complet equivalent.</p>`;
+  El sou mitjà inclou tots els assalariats a temps complet equivalent.</p>
+  ${petita(LP.sous())}`;
 }
 
 /* ── 💸 El preu del deute ───────────────────────────────────────────────────── */
@@ -1269,7 +1280,8 @@ function renderDeute() {
       <div><b>Depèn dels interessos.</b><p class="sub">Amb tipus d'interès alts, pagar el deute costa més i queden menys diners per a sanitat, escoles o pensions.</p></div>
       <div><b>Depèn de si l'economia creix.</b><p class="sub">Si el PIB creix més de pressa que el deute, el percentatge baixa sol encara que no es retorni res.</p></div>
     </div>
-  </div>`;
+  </div>
+  ${petita(LP.deute())}`;
 }
 
 /* ── 📈 Tipus d'interès ─────────────────────────────────────────────────────── */
@@ -1356,10 +1368,160 @@ function renderCreixement() {
       ${barsHTML(atur, { fmt: v => pct(v), me: 'ESP' })}
     </div>
   </div>
+  ${prodHTML()}
   <div class="card">
     <h3>Riquesa per habitant ${Y}</h3>
     <p class="sub">PIB per persona en dòlars internacionals (ajustat pel cost de vida). És la millor manera de comparar el nivell de vida mitjà, tot i que no diu res de com es reparteix.</p>
     ${barsHTML(rics, { fmt: v => int(v) + ' $', me: 'ESP' })}
+  </div>
+  ${petita(LP.pib())}`;
+}
+
+/* ── 🔍 La lletra petita: què no diu cada xifra oficial ─────────────────────── */
+// Regla de la casa: criticar no és inventar. De cada xifra es diu què mesura de veritat,
+// què deixa fora i què caldria mirar a més. Res que no es pugui comprovar a la font.
+function petita(html, titol = 'La lletra petita d\'aquestes xifres') {
+  return `<details class="petita"><summary>🔍 ${esc(titol)}</summary><div>${html}</div></details>`;
+}
+const LP = {
+  pib: () => `<ul>
+    <li><b>El PIB compta activitat, no benestar.</b> Reconstruir després d'una riuada, les hores perdudes en un atac informàtic o un judici llarg hi sumen. La feina de casa i el voluntariat no hi surten.</li>
+    <li><b>Hi ha una part que ningú paga.</b> Als comptes nacionals hi entra el "lloguer imputat": el que es cobrarien els propietaris a si mateixos per viure al seu pis.</li>
+    <li><b>Créixer no és millorar.</b> Un país pot créixer només perquè hi ha més gent i més hores treballades: per això hi ha el desglossament d'aquí sobre.</li>
+    <li><b>L'atur oficial és una enquesta (EPA).</b> Compta com a ocupat qui ha treballat <b>una hora</b> la setmana anterior, i deixa fora qui s'ha cansat de buscar feina.</li>
+    <li>Les xifres del ${Y} i endavant són <b>previsions</b> de l'FMI. Les previsions fallen: ni la pandèmia ni la inflació del 2021 les van encertar.</li></ul>`,
+  ipc: () => `<ul>
+    <li><b>És una mitjana d'una cistella "tipus".</b> Si al teu pressupost hi pesen molt el lloguer, la llum o el menjar, la teva inflació és més alta que la publicada.</li>
+    <li><b>La cistella canvia cada any</b> i s'ajusta per qualitat: si un cotxe puja de preu però porta més coses, l'estadística compta menys pujada de la que pagues.</li>
+    <li><b>Comprar un pis no hi és.</b> A l'IPC hi entra el lloguer, no el preu de compra (es considera inversió). Per això el cost de l'habitatge es nota menys del que sembla.</li>
+    <li>Hi ha índexs alternatius que diuen que la inflació real és molt més alta, però la majoria <b>no expliquen com es calculen</b>: aquí no es fan servir.</li></ul>`,
+  sous: () => `<ul>
+    <li><b>La mitjana no és el que cobra la majoria.</b> Els sous alts l'estiren cap amunt; el del mig (medià) és més baix. <a href="#creixement">Mediana vs mitjana →</a></li>
+    <li><b>És "a temps complet equivalent".</b> L'OCDE suma tots els sous com si tothom fes jornada sencera: no és el que cobra una persona concreta.</li>
+    <li><b>El sou real no es descompta amb l'IPC</b>, sinó amb els preus del consum privat. Per això no quadra exactament amb la inflació de l'altra pestanya.</li>
+    <li>És el <b>sou brut</b>: el que arriba al compte depèn de l'IRPF i les cotitzacions. <a href="#impostos">Mira-ho →</a></li></ul>`,
+  deute: () => {
+    const N = PRODE().ESP?.pibNom || {};                        // PIB en euros corrents (Eurostat)
+    const bil = a => N[a] && val('ESP', 'deute', a) != null ? val('ESP', 'deute', a) / 100 * N[a] / 1e6 : null;
+    const p0 = 2015, anys = Object.keys(N).map(Number).filter(a => bil(a) != null);
+    const p1 = anys.length ? Math.max(...anys) : null;
+    const d0 = bil(p0), d1 = p1 ? bil(p1) : null;
+    return `<ul>
+    ${d0 && d1 ? `<li><b>Que baixi el percentatge no vol dir deure menys diners.</b> El deute d'Espanya era ${pct(val('ESP', 'deute', p0), 0)} del PIB el ${p0} i ${pct(val('ESP', 'deute', p1), 0)} el ${p1},
+      gairebé igual; però en euros ha passat de <b>${nf(d0, 2)} bilions</b> a <b>${nf(d1, 2)} bilions</b>. El que ha crescut és el PIB en euros, empès per la inflació: el deute no s'ha pagat, s'ha <b>diluït</b>.</li>` : ''}
+    <li><b>El deute oficial (criteri de Maastricht) no inclou les pensions promeses</b> ni els avals de l'estat: són compromisos futurs que no compten fins que es paguen.</li>
+    <li>Tampoc hi és tot el deute d'empreses públiques ni el que es deu als proveïdors.</li>
+    <li><b>Els interessos que es veuen aquí són nets</b> (saldo primari menys dèficit): l'estat també cobra interessos d'alguns actius.</li></ul>`;
+  },
+  immi: () => `<ul>
+    <li><b>Padró i cens no donen el mateix.</b> Al padró s'hi apunta qui vol empadronar-se i hi ha qui no s'esborra en marxar; el cens es calcula d'una altra manera. Les xifres ballen.</li>
+    <li><b>Qui no està registrat no surt enlloc.</b> Les entrades irregulars detectades són les que es veuen, no les que hi ha.</li>
+    <li>Les dades d'ordres d'expulsió i retorns diuen <b>quantes</b>, no per què no es compleixen (acords amb el país d'origen, recursos, casos d'asil…).</li>
+    <li>Aquí no hi ha dades de delinqüència per nacionalitat: sense tenir en compte l'edat, el sexe i la renda, comparar-les <b>enganya</b>.</li></ul>`,
+  borsa: () => `<ul>
+    <li><b>L'índex no és el país.</b> Les grans empreses cotitzades guanyen diners a mig món: que la borsa pugi no vol dir que l'economia de casa vagi bé.</li>
+    <li>Els índexs d'aquí són <b>sense dividends</b> i en moneda de cada país: en dòlars o amb dividends, el resultat canvia.</li>
+    <li>Les xifres de concentració (el pes de les grans tecnològiques) surten dels divulgadors, <b>no d'una font oficial oberta</b>: preneu-les com a ordre de magnitud.</li></ul>`,
+};
+
+/* ── 🔧 Productivitat: treballem més hores o produïm més en cada hora? ─────────── */
+// Dades d'Eurostat, només països europeus. Identitat comptable, no opinió:
+//   PIB = hores treballades × producció per hora    i    hores = població × hores per habitant
+const PRODE = () => D.prod?.eu || {};
+const teProd = c => !!(PRODE()[c]?.pibReal && PRODE()[c]?.hores);
+const prodUltim = c => { const e = PRODE()[c]; if (!e) return null; const a = Object.keys(e.hores || {}).map(Number).filter(x => e.pibReal?.[x]); return a.length ? Math.max(...a) : null; };
+const perHora = (c, a) => { const e = PRODE()[c]; return e?.pibReal?.[a] && e?.hores?.[a] ? e.pibReal[a] / e.hores[a] : null; };     // € del 2015 per hora
+const perHoraPPA = (c, a) => { const e = PRODE()[c]; return e?.pibPPA?.[a] && e?.hores?.[a] ? e.pibPPA[a] / e.hores[a] : null; };   // comparable entre països
+const serieHora = c => { const e = PRODE()[c] || {}; const o = {}; for (const a of Object.keys(e.pibReal || {})) if (e.hores?.[a]) o[a] = e.pibReal[a] / e.hores[a]; return o; };
+const paisosProd = () => [...Object.keys(D.paisos), 'EU'].filter(teProd);
+
+// Quant del creixement ve de treballar més i quant de produir més per hora
+function desglossa(c, a0, a1) {
+  const e = PRODE()[c];
+  const f = k => e?.[k]?.[a0] && e?.[k]?.[a1] ? e[k][a1] / e[k][a0] : null;
+  const pib = f('pibReal'), pob = f('pob'), h = f('hores');
+  if (!pib || !pob || !h || pib <= 0) return null;
+  // el pes es calcula amb logaritmes perquè les dues parts sumin exactament el creixement total
+  const pes = Math.log(pib) === 0 ? null : Math.log(h) / Math.log(pib) * 100;
+  return { pib: (pib - 1) * 100, pob: (pob - 1) * 100, horesPob: (h / pob - 1) * 100, hores: (h - 1) * 100, perHora: (pib / h - 1) * 100, pes };
+}
+
+let prodBase = lsGet('economia_prodbase', 2015);
+function setProdBase(a) { prodBase = +a; lsSet('economia_prodbase', prodBase); renderView(); }
+
+function prodHTML() {
+  const llista = paisosProd();
+  if (!llista.length) return '';
+  const a1 = Math.min(...llista.map(prodUltim));
+  const opcions = [2000, 2008, 2015, 2019].filter(a => a < a1);
+  const a0 = opcions.includes(prodBase) ? prodBase : 2015;
+  const selP = [...sel].filter(teProd);
+  const cs = selP.length ? selP : ['ESP', 'DEU', 'FRA', 'ITA', 'EU'].filter(teProd);
+  const rows = llista.map(c => { const d = desglossa(c, a0, a1); return d && { c, name: label(c), a: d.hores, b: d.perHora, pib: d.pib }; })
+    .filter(Boolean).sort((x, y) => y.pib - x.pib);
+  const E = desglossa('ESP', a0, a1);
+  const niv = llista.map(c => ({ c, name: label(c), v: perHoraPPA(c, a1) })).filter(r => r.v).sort((x, y) => y.v - x.v);
+  const invRows = llista.map(c => ({ c, name: label(c), v: PRODE()[c]?.inversio?.[a1] })).filter(r => r.v != null).sort((x, y) => y.v - x.v);
+  const invE = PRODE().ESP?.inversio || {};
+  const selector = `<div class="calc" style="margin:8px 0">
+    <span>Des de l'any</span>
+    <select onchange="setProdBase(this.value)" aria-label="Any de referència">${opcions.map(a => `<option ${a === a0 ? 'selected' : ''}>${a}</option>`).join('')}</select>
+    <span class="muted">fins al ${a1}</span></div>`;
+  return `
+  <div class="card">
+    <h3>🔧 D'on surt el creixement: més hores o més productivitat?</h3>
+    <p class="sub">Tot el que produeix un país es pot partir en dues coses: <b>quantes hores es treballen</b> (més gent, més ocupació) i
+    <b>quant es produeix en cada hora</b>. No és una opinió, és una divisió: les dues parts multiplicades donen el creixement total.
+    Els sous només poden pujar de manera sostinguda si puja la segona.</p>
+    ${selector}
+    ${E ? `<div class="callout">
+      <b>Espanya, del ${a0} al ${a1}:</b> l'economia creix un <b>${pct(E.pib, 0)}</b>. Les hores treballades pugen un ${pct(E.hores, 0)}
+      (població ${sgn(E.pob, 0)} %, hores per habitant ${sgn(E.horesPob, 0)} %) i la producció per hora, un <b>${pct(E.perHora, 1)}</b>.
+      Dit d'una altra manera: <b>${nf(E.pes, 0)} de cada 100 punts</b> de creixement venen de treballar més hores, i només ${nf(100 - E.pes, 0)} de fer-ho millor.</div>` : ''}
+    ${pairBarsHTML(rows, { la: 'Més hores treballades', lb: 'Més producció per hora', fmt: v => sgn(v, 0) + ' %', me: 'ESP' })}
+    <p class="muted">Eurostat, països europeus (l'FMI i l'OCDE no donen hores treballades de tothom). ⚠️ El resultat depèn molt dels anys que triïs:
+    entre el 2008 i el 2013 es van destruir milions de llocs de treball i la producció per hora <b>puja sola</b>, perquè les feines que es perden
+    són de les menys productives. Per això comparar des del 2008 fa quedar Espanya millor del que va anar.</p>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Quant es produeix en una hora de feina (${a1})</h3>
+      <p class="sub">PIB d'una hora treballada, ajustat pel cost de vida de cada país perquè es pugui comparar.</p>
+      ${barsHTML(niv, { fmt: v => nf(v, 0) + ' €/h', me: 'ESP', ref: { v: perHoraPPA('EU', a1), label: 'la mitjana de la UE' } })}
+      <p class="muted">Una hora de feina a Espanya produeix ${niv.find(r => r.c === 'ESP') && perHoraPPA('EU', a1) ? `el ${pct(perHoraPPA('ESP', a1) / perHoraPPA('EU', a1) * 100, 0)} de la mitjana europea` : '–'}.
+      No vol dir que la gent treballi menys o pitjor: depèn sobretot de la maquinària, la mida de les empreses i els sectors on es treballa.</p>
+    </div>
+    <div class="card">
+      <h3>Producció per hora des del ${a0} (${a0} = 100)</h3>
+      <p class="sub">Si la línia és plana, el país produeix el mateix cada hora que fa anys: el creixement ve de posar-hi més gent i més hores.</p>
+      ${chipsHTML(teProd)}
+      ${cs.length ? chart('c-prod', el => lineChart(el, { title: 'Producció per hora', zero: false, fmt: v => nf(v, 0), ref: { y: 100, label: 'nivell del ' + a0 },
+        series: cs.map((c, i) => ({ name: label(c), short: ent(c).nom, color: selP.length ? col(c) : `var(--s${i + 1})`, pts: idxBase(serieHora(c), a0) })) })) : '<p class="muted">Tria algun país europeu.</p>'}
+    </div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Inversió (${a1})</h3>
+      <p class="sub">Què es gasta el país cada any en màquines, edificis, ordinadors i infraestructures, en % del PIB. És el que fa pujar la producció per hora.</p>
+      ${barsHTML(invRows, { fmt: v => pct(v, 1), me: 'ESP' })}
+      ${invE[2007] ? `<p class="muted">Espanya inverteix el ${pct(invE[a1], 1)} del PIB. El ${2007} era el ${pct(invE[2007], 1)}, però aleshores gairebé tot anava a pisos:
+      invertir molt no serveix de res si s'inverteix en coses que no fan produir més.</p>` : ''}
+    </div>
+    <div class="card">
+      <h3>La mitjana no és el que cobra la majoria</h3>
+      <p class="sub">La <b>renda mediana</b> és la del que queda just al mig: la meitat de la gent en té menys i l'altra meitat, més.
+      La <b>mitjana</b> la estiren cap amunt els ingressos més alts. Com més separades estan, més desigual és el repartiment.</p>
+      ${(() => {
+        const rr = llista.map(c => { const e = PRODE()[c] || {}; const a = Math.max(...Object.keys(e.rendaMed || { 0: 0 }).map(Number)); return e.rendaMed?.[a] ? { c, name: label(c), a: e.rendaMed[a], b: e.rendaMitj?.[a], any: a } : null; }).filter(r => r && r.b).sort((x, y) => y.a - x.a);
+        const es = PRODE().ESP || {}, aR = rr.find(r => r.c === 'ESP')?.any;
+        const desde = 2015, inflR = aR ? cumInfl('ESP', desde - 1, aR - 1) : null;   // la renda de l'enquesta és la de l'any anterior
+        const realR = es.rendaMed?.[desde] && aR && inflR != null ? (es.rendaMed[aR] / es.rendaMed[desde] / (1 + inflR / 100) - 1) * 100 : null;
+        return `${pairBarsHTML(rr, { la: 'Mediana', lb: 'Mitjana', fmt: v => int(v) + ' €', me: 'ESP' })}
+        ${realR != null ? `<p class="muted">A Espanya, la renda mediana d'una persona ha passat de ${int(es.rendaMed[desde])} € (${desde}) a ${int(es.rendaMed[aR])} € (${aR}).
+        Descomptant la inflació, ${realR >= 0 ? 'puja' : 'baixa'} un <b>${pct(Math.abs(realR), 0)}</b>: més que el sou mitjà, perquè hi compten les pensions, les ajudes
+        i que a cada casa hi treballa més gent. Enquesta EU-SILC: els ingressos són els de l'any anterior.</p>` : ''}`;
+      })()}
+    </div>
   </div>`;
 }
 
@@ -1862,7 +2024,8 @@ function renderImmigracio() {
       sol sumar a les arques públiques; la irregular o la que no s'integra al mercat laboral sol costar més del que aporta. Per això els països que gestionen millor
       la immigració combinen control de fronteres i retorns efectius amb vies legals per venir a treballar, formació i aprenentatge de la llengua.</p>
     </div>
-  </div>`;
+  </div>
+  ${petita(LP.immi())}`;
 }
 
 /* ── 🧾 Impostos ────────────────────────────────────────────────────────────── */
@@ -2444,7 +2607,19 @@ function renderBorsa() {
     </div>
     <p class="muted" style="margin-top:10px">Les xifres de concentració (39 %, 0,98) són les que citen els divulgadors; l'app no en té una font oficial i oberta per verificar-les.
     La resta de dades d'aquesta pestanya són de l'OCDE, el Banc Mundial, l'FMI i el Tresor dels EUA. Res d'això és un consell d'inversió.</p>
-  </div>`;
+  </div>
+  <div class="card">
+    <h3>🧊 I la lectura contrària: potser no és cap bogeria</h3>
+    <p class="sub">Tot el que hi ha aquí sobre la concentració i la intel·ligència artificial és la visió dels qui avisen d'una bombolla. Val la pena sentir també
+    els qui la desinflen. L'economista català <b>Xavier Sala i Martín</b> (Universitat de Colúmbia) sosté que bona part de l'alarma sobre la IA és soroll:
+    que les màquines no han desobeït ningú i que el problema, quan n'hi ha, és de <b>persones que incompleixen lleis que ja existeixen</b>, no de tecnologia fora de control.
+    També recorda que quan una empresa demana aturar el progrés, sol tenir-hi interessos propis.</p>
+    <p class="sub">Aplicat a la borsa: que unes poques empreses pesin molt no vol dir automàticament que hi hagi bombolla. Les grans tecnològiques guanyen
+    diners de veritat, i part de la inversió en centres de dades i xips acabarà produint més. La diferència entre una bombolla i un canvi tecnològic
+    de debò no es veu clara fins que ha passat. Per això aquí hi ha les <b>dues lectures</b>, amb les dades al costat.</p>
+    <p class="muted">Font: entrevistes de Xavier Sala i Martín a RAC1 (2025-2026). És l'opinió d'un economista, com les dels divulgadors citats més amunt: l'app no pren partit.</p>
+  </div>
+  ${petita(LP.borsa())}`;
 }
 
 /* ── 🧭 Guia: menú agrupat, "en 30 segons", rutes i glossari emergent ────────── */
@@ -2568,8 +2743,12 @@ const RAPID = {
     return `El BCE té el tipus al <b>${pct(T[k], 2)}</b>${c ? ` (l'últim moviment va ser ${c.a > c.de ? 'una pujada' : 'una baixada'} el ${monthLabel(monthX(c.mes))})` : ''}.
       Amb una inflació del ${pct(inf)}, el tipus real és de ${sgn(T[k] - inf, 2)} punts. Quan els tipus pugen, hipoteques i préstecs s'encareixen i la inflació es frena.`;
   },
-  creixement: () => `Espanya creix un <b>${pct(val('ESP', 'creix', Y))}</b> el ${Y}, més que la zona euro (${pct(val('EURO', 'creix', Y))}), amb un atur del ${pct(val('ESP', 'atur', Y))}.
-    Les economies emergents com l'Índia (${pct(val('IND', 'creix', Y))}) creixen molt més de pressa. <b>Què mirar:</b> la riquesa per habitant, que diu més que el creixement total.`,
+  creixement: () => {
+    const a1 = prodUltim('ESP'), d = a1 ? desglossa('ESP', 2015, a1) : null;
+    return `Espanya creix un ${pct(val('ESP', 'creix', Y))} el ${Y}, més que la zona euro (${pct(val('EURO', 'creix', Y))}), amb un atur del ${pct(val('ESP', 'atur', Y))}.
+    ${d ? `Ara bé, del 2015 al ${a1}, <b>${nf(d.pes, 0)} de cada 100 punts</b> de creixement vénen de treballar més hores, no de produir més en cada hora (només ${sgn(d.perHora, 1)} % en ${a1 - 2015} anys).` : ''}
+    <b>Què mirar:</b> d'on surt el creixement i la producció per hora.`;
+  },
   immigracio: () => {
     const e = IE().ESP, [aF, f] = imLast('ESP', 'nascutsFora'), [aO, o] = imLast('ESP', 'ordres');
     return `El <b>${pct(f / e.pob[aF] * 100)}</b> de la població d'Espanya ha nascut a fora. La majoria treballa, però amb més atur i més pobresa que els nascuts aquí,
@@ -2640,6 +2819,8 @@ const GLOSSARI = [
   ['Carry trade', 'Demanar prestat en una moneda amb tipus baixos (com el ien) per invertir on es cobra més. Si aquella moneda s\'encareix, tothom vol sortir alhora.', /carry trade/i],
   ['Expansió i reducció quantitativa (QE i QT)', 'QE: el banc central compra bons amb diners nous per abaratir el crèdit. QT: fa el contrari, deixa vèncer els bons o els ven, i retira diners del sistema.', /\bQ[ET]\b/],
   ['Palanquejament', 'Invertir amb diners manllevats. Multiplica els guanys i també les pèrdues, i obliga a vendre si et demanen més garanties.', /palanquejament/i],
+  ['Productivitat', 'El que es produeix en una hora de feina. És l\'única manera que els sous pugin de manera sostinguda: si no es produeix més, repartir més acaba en inflació.', /productivitat/i],
+  ['Renda mediana', 'La renda de la persona que queda just al mig: la meitat en té menys i l\'altra meitat, més. A diferència de la mitjana, no l\'estiren els ingressos molt alts.', /renda mediana/i],
   ['Progressivitat en fred', 'Quan els trams de l\'IRPF no s\'actualitzen amb la inflació: amb el mateix poder adquisitiu pagues un percentatge més alt d\'impostos.', /progressivitat en fred/i],
   ['Cunya fiscal', 'Tot el que l\'estat es queda del cost d\'un treballador: IRPF i cotitzacions del treballador i de l\'empresa.', /cunya fiscal/i],
   ['Taxa de dependència', 'Quantes persones grans (65 anys o més) hi ha per cada 100 en edat de treballar (15-64). Com més alta, més pesen les pensions sobre qui treballa.', /taxa de dependència/i],
@@ -2742,6 +2923,26 @@ function renderAprendre() {
   <div class="intro">
     <h2>📘 Com funciona l'economia mundial</h2>
     <p class="sub">Una explicació curta de les peces principals i de com es mouen juntes.</p>
+  </div>
+  <div class="card">
+    <h3>🔍 Com llegir les xifres oficials sense empassar-te-les</h3>
+    <p class="sub">Aquesta app només fa servir dades oficials (FMI, OCDE, BCE, Eurostat, BIS, Tresor dels EUA, Idescat). No perquè siguin la veritat absoluta,
+    sinó perquè es poden comprovar. Ara bé, cap xifra és innocent: totes decideixen què compten i què deixen fora. La regla d'aquí és senzilla:
+    <b>criticar no és inventar</b>. De cada dada diem què mesura, què no mesura i on mirar-ho.</p>
+    <div class="grid g2">
+      <div><b>🏭 El PIB</b><p class="sub">Compta activitat, no si vivim millor. Un país pot créixer només perquè hi ha més gent.
+      <a href="#creixement">D'on surt el creixement →</a></p></div>
+      <div><b>🛒 L'IPC</b><p class="sub">És una cistella mitjana i no hi entra el preu de comprar un pis, només el lloguer. La teva inflació pot ser més alta.
+      <a href="#inflacio">Calcula la teva →</a></p></div>
+      <div><b>💶 El sou mitjà</b><p class="sub">L'estiren els sous alts. El del mig (medià) és més baix, i la renda de les llars es mou diferent.
+      <a href="#creixement">Mediana vs mitjana →</a></p></div>
+      <div><b>🏦 El deute públic</b><p class="sub">En % del PIB pot baixar mentre els euros deguts pugen. I no inclou les pensions promeses.
+      <a href="#deute">Mira-ho →</a></p></div>
+      <div><b>📉 L'atur</b><p class="sub">És una enquesta: ocupat = has treballat una hora la setmana passada. Qui deixa de buscar feina desapareix de l'estadística.</p></div>
+      <div><b>🔮 Les previsions</b><p class="sub">Les de l'FMI es refan cada sis mesos i s'equivoquen sovint. Aquí surten ombrejades: són una hipòtesi, no el futur.</p></div>
+    </div>
+    <p class="muted">A cada pestanya hi trobaràs un desplegable <b>🔍 La lletra petita</b> amb els límits d'aquelles dades concretes.
+    I si una xifra oficial contradiu un text escrit a mà d'aquesta app, la que està malament és la frase.</p>
   </div>
   <div class="card">
     <h3>El cicle en un dibuix</h3>

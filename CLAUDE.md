@@ -32,6 +32,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ Fed NY           → eua.rrp["AAAA-MM"] (mitjana), eua.rrpUltim, eua.rrpMax
   ├─ FMI IRFCL mensual→ altra.orMensual[ISO3]["AAAA-MM"] (compres de l'any en curs)
   ├─ Eurostat demo    → demo.eu[ISO3|EU].{depVell, depVellProj, pensions, fecunditat, creixPob, llar, llicencies}
+  ├─ Eurostat prod    → prod.eu[ISO3|EU].{pibReal, pibNom, pibPPA, pob, ocupats, hores, inversio, rendaMed, rendaMitj}
+  │                     (pestanya Creixement: d'on surt el creixement, productivitat per hora, inversió i renda mediana)
   ├─ BIS EER + BCE    → divises.eer[moneda]["AAAA-MM"] (2020=100), divises.eur[moneda]["AAAA-MM"] (unitats per euro)
   ├─ Eurostat         → immi.eu[ISO3|EU][clau][any]   (pestanya "Immigració"; Grècia és EL a Eurostat)
   ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
@@ -51,6 +53,11 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   per això `get()` acaba provant amb `curl` quan fetch falla (comprovat el 2026-09-16).
   També té un **límit de consultes per hora (HTTP 429)**: no facis proves repetides ni consultes país per país.
 - FRED (Fed de St. Louis) no respon des d'aquí: no el facis servir.
+- La productivitat de l'OCDE (DSD_PDB) retorna HTTP 500 sempre, també amb curl: no la facis servir. Per això
+  `prod` es calcula amb Eurostat (només països europeus): PIB real i nominal, PIB en PPA, població, ocupats i
+  hores treballades, i d'aquí surten la producció per hora i el desglossament del creixement.
+- La renda mediana i mitjana surten de l'EU-SILC (`ilc_di03`, dimensions `statinfo` i `unit`): els ingressos
+  són els de **l'any anterior** a l'enquesta; per passar-los a euros constants cal desplaçar la inflació un any.
 - Les xifres de concentració de la borsa (pes de la tecnologia a l'S&P 500) no tenen font oficial oberta: a la pestanya Borsa
   surten citades com a xifres dels divulgadors.
 - Interessos del deute = `primari` (FMI Fiscal Monitor) − `deficit` (WEO). Són interessos **nets**.
@@ -89,6 +96,19 @@ registra el gràfic i `flushCharts()` el pinta quan el contenidor ja té amplada
 - `RUTES`: preguntes amb passos `[vista, per què]`. L'estat es desa a `economia_ruta`.
 - `GLOSSARI`: [títol, definició, regex]. Només es marca la **primera** aparició de cada terme per pàgina, i mai dins de
   botons, enllaços, gràfics, taules, barres ni textos `.muted` (`NO_GLOS`). Vigila que la regex no enganxi paraules comunes.
+
+## 3c. Crítica de les dades oficials ("la lletra petita")
+
+L'usuari vol que l'app sigui **crítica amb les xifres oficials sense enganyar**. La regla, escrita a la pestanya
+Aprendre, és: *criticar no és inventar*. De cada dada es diu **què mesura, què deixa fora i on mirar-ho**.
+
+- `LP` és un objecte amb el text de cada pestanya (pib, ipc, sous, deute, immi, borsa) i `petita(html)` el
+  renderitza com un `<details class="petita">` al final de la vista.
+- Només s'hi posen límits **comprovables** de la font (definicions, cobertura, metodologia) o comparacions que
+  fa la mateixa app (per exemple: el deute en euros puja mentre el % del PIB baixa). Res d'índexs alternatius
+  sense metodologia ni xifres de tercers no verificables.
+- Quan una crítica d'un divulgador es pot contrastar amb dades, es contrasta; si no es pot, es cita com a
+  opinió i es diu qui la fa (vegeu la targeta de contrapunt sobre la IA a Borsa).
 
 ## 4. Provar
 
