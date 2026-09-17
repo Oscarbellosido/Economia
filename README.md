@@ -24,6 +24,13 @@ Economia/
 └── CLAUDE.md         ← guia per a assistents d'IA
 ```
 
+## 🧭 Com està organitzada
+
+- **Menú en 5 blocs**: 🧭 Comença aquí · 👛 La teva butxaca · 🏛️ Estats i deute · 🌍 El món · 🔎 Eines. En triar un bloc surten les seves pàgines.
+- **⏱️ En 30 segons**: cada pàgina comença amb la conclusió principal, calculada amb les dades. Els gràfics i les taules queden plegats sota **"Veure el detall"** (l'app recorda si l'obres).
+- **Rutes guiades**: des del Resum pots triar una pregunta ("Per què tot és més car?", "Cobraré pensió?", "Ve una crisi?", "Com funciona l'economia?") i l'app et porta pas a pas amb un botó **Següent**.
+- **Paraules subratllades amb punts**: en tocar-les surt l'explicació del glossari.
+
 ## 📑 Què hi ha a l'app
 
 | Pestanya | Què explica |

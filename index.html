@@ -223,6 +223,52 @@ tr.grp td { color: var(--text-2); font-style: italic; }
 td.hi { color: var(--bad); font-weight: 600; }
 td.lo { color: var(--good); font-weight: 600; }
 
+/* Menú en dos nivells */
+nav.grups button { font-weight: 600; color: var(--text); }
+nav.sub { padding-top: 0; }
+nav.sub button { font-size: .88rem; padding: 5px 11px; }
+nav.sub button.on { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* En 30 segons i detall plegat */
+.rapid { background: color-mix(in srgb, var(--accent) 9%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 14px; padding: 12px 16px; margin: 0 0 14px; }
+.rapid .rtit { font-weight: 700; font-size: .78rem; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.rapid p { margin: 4px 0 0; font-size: 1.02rem; line-height: 1.55; }
+details.detall { margin-top: 6px; }
+details.detall > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+  background: var(--card); border: 1px dashed var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
+details.detall > summary::-webkit-details-marker { display: none; }
+details.detall > summary:hover { border-color: var(--accent); }
+details.detall .dobre, details.detall .dtanca { font-weight: 650; color: var(--accent); }
+details.detall .dtanca, details.detall[open] .dobre { display: none; }
+details.detall[open] .dtanca { display: inline; }
+
+/* Rutes guiades */
+.rutegrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); margin-top: 10px; }
+.rutabtn { text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: center; cursor: pointer; padding: 12px 14px; border-radius: 14px;
+  background: var(--card-2); border: 1px solid var(--border); color: var(--text); }
+.rutabtn:hover { border-color: var(--accent); }
+.rutabtn .remo { font-size: 1.6rem; grid-row: span 2; }
+.rutabar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 14px; margin-bottom: 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); font-size: .9rem; }
+.rutabar .rpas { color: var(--text-2); flex: 1; min-width: 180px; }
+.rutabar .rdots { display: inline-flex; gap: 5px; }
+.rutabar .rdots i { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+.rutabar .rdots i.fet { background: var(--accent); opacity: .5; }
+.rutabar .rdots i.ara { background: var(--accent); }
+.rutabar button { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; cursor: pointer; color: var(--text-2); }
+.rutanext { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 18px 0 6px; }
+.rutanext button { cursor: pointer; border-radius: 14px; padding: 12px 18px; font-weight: 650; border: 0; background: var(--accent); color: #fff;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.rutanext button small { font-weight: 400; opacity: .9; }
+.rutanext button.sec { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+
+/* Glossari emergent */
+abbr.terme { text-decoration: none; border-bottom: 1.5px dotted var(--accent); cursor: help; }
+#glostip { position: fixed; z-index: 50; display: none; max-width: min(320px, calc(100vw - 16px)); background: var(--bg-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: .86rem; box-shadow: 0 8px 24px var(--shadow); }
+#glostip p { margin: 4px 0 6px; color: var(--text-2); }
+
 /* Resum: semàfor, fitxes i escenaris */
 .sem { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin-top: 12px; }
 .semi { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--card-2);
@@ -273,27 +319,12 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
       <h1>🌍 Economia Mundial <span>explicada fàcil</span></h1>
       <button class="iconbtn" id="themeBtn" onclick="toggleTheme()" title="Canvia el tema" aria-label="Canvia el tema">🌓</button>
     </div>
-    <nav class="tabs" id="tabs" aria-label="Seccions">
-      <button data-v="resum" onclick="go('resum')">🧭 Resum</button>
-      <button data-v="inici" onclick="go('inici')">🏠 El món en xifres</button>
-      <button data-v="inflacio" onclick="go('inflacio')">🛒 Inflació</button>
-      <button data-v="sous" onclick="go('sous')">💶 Sous</button>
-      <button data-v="impostos" onclick="go('impostos')">🧾 Impostos</button>
-      <button data-v="deute" onclick="go('deute')">🏦 Deute</button>
-      <button data-v="eua" onclick="go('eua')">💵 Deute dels EUA</button>
-      <button data-v="borsa" onclick="go('borsa')">📊 Borsa</button>
-      <button data-v="tipus" onclick="go('tipus')">📈 Tipus d'interès</button>
-      <button data-v="creixement" onclick="go('creixement')">🏭 Creixement</button>
-      <button data-v="pais" onclick="go('pais')">📍 Fitxa de país</button>
-      <button data-v="altra" onclick="go('altra')">🔍 L'altra cara</button>
-      <button data-v="immigracio" onclick="go('immigracio')">🧳 Immigració</button>
-      <button data-v="pensions" onclick="go('pensions')">👴 Pensions</button>
-      <button data-v="comparar" onclick="go('comparar')">📊 Comparar</button>
-      <button data-v="aprendre" onclick="go('aprendre')">📘 Com funciona</button>
-    </nav>
+    <nav class="tabs grups" id="grups" aria-label="Blocs"></nav>
+    <nav class="tabs sub" id="tabs" aria-label="Pàgines del bloc"></nav>
   </div>
 </header>
 
+<div id="glostip" role="tooltip"></div>
 <main class="wrap" id="app">
   <div class="loading" id="loading">Carregant dades…</div>
 
@@ -342,7 +373,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 const BUILD_DATE = '2026-09-16';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -560,7 +591,16 @@ function barsHTML(rows, o = {}) {
 // Els gràfics SVG es dibuixen després d'inserir l'HTML (necessiten l'amplada real)
 let pending = [];
 const chart = (id, fn) => { pending.push([id, fn]); return `<div class="chart" id="${id}"></div>`; };
-function flushCharts() { for (const [id, fn] of pending) { const el = document.getElementById(id); if (el) fn(el); } }
+// Els gràfics dins d'un detall tancat es dibuixen quan s'obre (abans no tenen amplada)
+function flushCharts() {
+  const resten = [];
+  for (const [id, fn] of pending) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.closest('details:not([open])')) resten.push([id, fn]); else fn(el);
+  }
+  pending = resten;
+}
 
 /* ── Navegació ──────────────────────────────────────────────────────────────── */
 const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio, sous: renderSous, impostos: renderImpostos, deute: renderDeute, eua: renderEua, borsa: renderBorsa, tipus: renderTipus,
@@ -569,9 +609,10 @@ function go(v) {
   if (!VIEWS[v]) v = 'resum';
   view = v;
   if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-  document.querySelector(`#tabs button[data-v="${v}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  ultimVist[grupDe(v).id] = v; lsSet('economia_ultim', ultimVist);
+  amagaTerme();
   renderView();
+  document.querySelector(`#tabs button[data-v="${v}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   scrollTo({ top: 0 });
 }
 function renderView() {
@@ -580,7 +621,12 @@ function renderView() {
   const el = $('#v-' + view);
   pending = [];
   const sy = scrollY;
+  renderNav();
   el.innerHTML = VIEWS[view]();
+  if (PLEGA.has(view)) plega(el);
+  if (view === 'resum') el.querySelector('.intro')?.insertAdjacentHTML('afterend', rutesHTML());
+  afegeixRuta(el);
+  glossaritza(el);
   el.classList.add('on');
   flushCharts();
   scrollTo({ top: sy });
@@ -2320,6 +2366,247 @@ function renderBorsa() {
   </div>`;
 }
 
+/* ── 🧭 Guia: menú agrupat, "en 30 segons", rutes i glossari emergent ────────── */
+const NOMS = {
+  resum: '🧭 Resum', aprendre: '📘 Com funciona', inflacio: '🛒 Inflació', sous: '💶 Sous', impostos: '🧾 Impostos',
+  altra: '🏠 Habitatge i l\'altra cara', deute: '🏦 Deute', pensions: '👴 Pensions', tipus: '📈 Tipus d\'interès',
+  eua: '💵 Deute dels EUA', inici: '🌐 El món en xifres', creixement: '🏭 Creixement', immigracio: '🧳 Immigració',
+  borsa: '📊 Borsa', pais: '📍 Fitxa de país', comparar: '⚖️ Comparar països',
+};
+const MENU = [
+  { id: 'comenca', nom: '🧭 Comença aquí', v: ['resum', 'aprendre'] },
+  { id: 'butxaca', nom: '👛 La teva butxaca', v: ['inflacio', 'sous', 'impostos', 'altra'] },
+  { id: 'estats', nom: '🏛️ Estats i deute', v: ['deute', 'pensions', 'tipus', 'eua'] },
+  { id: 'mon', nom: '🌍 El món', v: ['inici', 'creixement', 'immigracio', 'borsa'] },
+  { id: 'eines', nom: '🔎 Eines', v: ['pais', 'comparar'] },
+];
+let ultimVist = lsGet('economia_ultim', {});
+const grupDe = v => MENU.find(m => m.v.includes(v)) || MENU[0];
+const ultimDe = id => { const m = MENU.find(x => x.id === id); return m.v.includes(ultimVist[id]) ? ultimVist[id] : m.v[0]; };
+function renderNav() {
+  const g = grupDe(view);
+  $('#grups').innerHTML = MENU.map(m => `<button class="${m === g ? 'on' : ''}" onclick="go(ultimDe('${m.id}'))">${esc(m.nom)}</button>`).join('');
+  $('#tabs').innerHTML = g.v.map(v => `<button data-v="${v}" class="${v === view ? 'on' : ''}" onclick="go('${v}')">${esc(NOMS[v])}</button>`).join('');
+}
+
+// ── Rutes guiades ──
+const RUTES = [
+  { id: 'car', emo: '🛒', q: 'Per què tot és més car?', passos: [
+    ['inflacio', 'Quant han pujat els preus i per què'], ['sous', 'Si els sous han seguit els preus'],
+    ['impostos', 'Què se\'n queda Hisenda'], ['altra', 'Per què l\'habitatge s\'ha disparat'] ] },
+  { id: 'pensio', emo: '👴', q: 'Cobraré pensió?', passos: [
+    ['pensions', 'Quants treballadors hi haurà per cada jubilat'], ['immigracio', 'Què pot fer i què no la immigració'],
+    ['deute', 'Quant marge li queda a l\'estat'] ] },
+  { id: 'crisi', emo: '⚠️', q: 'Ve una crisi?', passos: [
+    ['deute', 'Qui deu més i quant li costa'], ['eua', 'El deute dels EUA i el sistema financer'],
+    ['borsa', 'Si la borsa està massa cara'], ['resum', 'Els escenaris i què vigilar'] ] },
+  { id: 'basic', emo: '📘', q: 'Com funciona l\'economia?', passos: [
+    ['aprendre', 'Les peces bàsiques i el glossari'], ['inici', 'Les grans xifres del món'],
+    ['tipus', 'Com els bancs centrals mouen els diners'], ['creixement', 'Creixement, atur i riquesa'] ] },
+];
+let ruta = lsGet('economia_ruta', null);
+function comencaRuta(id) { ruta = { id }; lsSet('economia_ruta', ruta); go(RUTES.find(r => r.id === id).passos[0][0]); }
+function sortirRuta() { ruta = null; lsSet('economia_ruta', null); renderView(); }
+function rutesHTML() {
+  return `<div class="card rutes">
+    <h3>🚀 Per on vols començar?</h3>
+    <p class="sub">Tria una pregunta i l'app et portarà pas a pas per les pàgines que la responen. Pots sortir-ne quan vulguis.</p>
+    <div class="rutegrid">${RUTES.map(r => `<button class="rutabtn" onclick="comencaRuta('${r.id}')">
+      <span class="remo">${r.emo}</span><b>${esc(r.q)}</b>
+      <span class="sub">${r.passos.map(p => esc(NOMS[p[0]].replace(/^\S+\s/, ''))).join(' → ')}</span></button>`).join('')}</div>
+  </div>`;
+}
+function afegeixRuta(el) {
+  const r = RUTES.find(x => x.id === ruta?.id); if (!r) return;
+  const i = r.passos.findIndex(p => p[0] === view); if (i < 0) return;
+  const seg = r.passos[i + 1], ant = r.passos[i - 1];
+  el.insertAdjacentHTML('afterbegin', `<div class="rutabar">
+    <span>${r.emo} <b>${esc(r.q)}</b></span>
+    <span class="rpas">Pas ${i + 1} de ${r.passos.length}: ${esc(r.passos[i][1])}</span>
+    <span class="rdots">${r.passos.map((p, k) => `<i class="${k < i ? 'fet' : k === i ? 'ara' : ''}"></i>`).join('')}</span>
+    <button onclick="sortirRuta()" aria-label="Sortir de la ruta">✕ Sortir</button></div>`);
+  el.insertAdjacentHTML('beforeend', `<div class="rutanext">
+    ${ant ? `<button class="sec" onclick="go('${ant[0]}')">← ${esc(NOMS[ant[0]])}</button>` : '<span></span>'}
+    ${seg ? `<button onclick="go('${seg[0]}')">Següent: ${esc(NOMS[seg[0]])} →<small>${esc(seg[1])}</small></button>`
+      : `<button onclick="sortirRuta();go('resum')">🎉 Has acabat la ruta · Tornar al resum</button>`}</div>`);
+}
+
+// ── "En 30 segons": la conclusió de cada pàgina, calculada amb les dades ──
+const RAPID = {
+  inici: () => {
+    const W = 'WEOWORLD';
+    return `L'economia mundial creix un <b>${pct(val(W, 'creix', Y))}</b> el ${Y} i la inflació és del <b>${pct(val(W, 'infl', Y))}</b>, més alta que el ${Y - 1} per l'energia.
+    Els estats deuen el ${pct(val(W, 'deute', Y), 0)} de tot el que es produeix al món, i les economies emergents creixen més del doble que les riques
+    (${pct(val('OEMDC', 'creix', Y))} vs ${pct(val('ADVEC', 'creix', Y))}).`;
+  },
+  inflacio: () => `Del 2020 al ${Y - 1}, a Espanya els <b>preus han pujat un ${pct(cumInfl('ESP', 2020, Y - 1), 0)}</b>, i no tornaran enrere.
+    El ${Y} la inflació és del ${pct(val('ESP', 'infl', Y))}, per sobre de l'objectiu del 2 %. <b>Què mirar:</b> la calculadora per saber quant valen avui els teus diners.`,
+  sous: () => {
+    const T = IMP().ESP, aT = impLast('ESP');
+    let net = null;
+    if (T?.net?.[2018] && aT) net = (T.net[aT] / T.net[2018] / (1 + (cumInfl('ESP', 2018, aT) || 0) / 100) - 1) * 100;
+    const r = ent('ESP').s.souReal, a = lastYear('ESP', 'souReal');
+    const g = (r[a] / r[2020] - 1) * 100;
+    return `Del 2020 al ${a}, el sou mitjà a Espanya, descomptant la inflació, ha variat un <b>${sgn(g)} %</b>: ${g < 0 ? 'ha perdut poder adquisitiu' : g < 3 ? 'gairebé no ha guanyat poder adquisitiu' : g < 8 ? 'ha guanyat poc poder adquisitiu' : 'ha guanyat poder adquisitiu'}.
+      ${net != null ? `I si hi sumes els impostos, el <b>sou net real és un ${nf(Math.abs(net), 1)} % ${net < 0 ? 'més baix' : 'més alt'} que el 2018</b>.` : ''}
+      <b>Què mirar:</b> en quins països els sous han guanyat a la inflació.`;
+  },
+  impostos: () => {
+    const e = IMP().ESP, a = impLast('ESP');
+    return `L'IRPF d'un sou mitjà a Espanya ha passat del <b>${pct(e.irpf[2020])} al ${pct(e.irpf[a])}</b> del 2020 al ${a}, sense canviar cap llei:
+      és la <b>progressivitat en fred</b>. De cada 100 € que paga l'empresa, l'estat se'n queda ${nf(e.cunya[a], 0)}. <b>Què mirar:</b> l'exemple amb números i el sou net real.`;
+  },
+  altra: () => {
+    const H = D.altra?.habitatge?.ESP?.anual, S = ent('ESP').s.souReal;
+    const a = Math.min(Math.max(...Object.keys(H).map(Number)), lastYear('ESP', 'souReal'));
+    return `Des del 2015, a Espanya els <b>pisos han pujat un ${pct((H[a] / H[2015] - 1) * 100, 0)}</b> per sobre de la inflació i els <b>sous un ${pct((S[a] / S[2015] - 1) * 100, 0)}</b>.
+      Els bancs centrals han creat diners com mai des del 2008 i compren or per no dependre del dòlar. Les dades oficials són certes, però no ho expliquen tot.`;
+  },
+  deute: () => {
+    const de = D.fiscal?.bons?.DEU, es = D.fiscal?.bons?.ESP;
+    const m = es && de ? Object.keys(es).filter(k => de[k] != null).sort().at(-1) : null;
+    return `Espanya deu el <b>${pct(val('ESP', 'deute', Y), 0)} del PIB</b> i en paga el ${pct(interessos('ESP', Y))} en interessos cada any${m ? `; la seva prima de risc és de ${nf((es[m] - de[m]) * 100, 0)} punts` : ''}.
+      Els EUA, França i el Japó deuen més i cada cop els costa més: els tipus a 30 anys són els més alts en dècades. <b>Què mirar:</b> la prima de risc i els interessos.`;
+  },
+  eua: () => {
+    const U = D.eua, T = U.tenidors || {}, k = Object.keys(T.TOTAL || {}).sort().at(-1);
+    return `Els EUA deuen <b>${bil(U.deuteUltim[1])}</b>, i el deute creix a un ritme rècord. Els governs estrangers en venen bons, però els inversors privats n'hi compren més,
+      sovint amb diners manllevats a curt termini. El "coixí" de liquiditat de la Fed és gairebé buit: el sistema té menys marge per aguantar un ensurt.`;
+  },
+  borsa: () => {
+    const C = D.borsa?.capPib?.USA; const a = C ? Math.max(...Object.keys(C).map(Number)) : null;
+    return `La borsa dels EUA val el <b>${pct(C?.[a], 0)} del PIB</b> (${a}), més que a la bombolla del 2000 (${pct(C?.[2000], 0)}). Ha pujat molt més que l'economia i que els sous,
+      i unes poques tecnològiques en tenen gran part del pes. <b>No és cap consell d'inversió.</b>`;
+  },
+  tipus: () => {
+    const c = lastChange('XM'), T = D.tipus?.XM, k = Object.keys(T || {}).sort().at(-1), inf = val('EURO', 'infl', Y);
+    return `El BCE té el tipus al <b>${pct(T[k], 2)}</b>${c ? ` (l'últim moviment va ser ${c.a > c.de ? 'una pujada' : 'una baixada'} el ${monthLabel(monthX(c.mes))})` : ''}.
+      Amb una inflació del ${pct(inf)}, el tipus real és de ${sgn(T[k] - inf, 2)} punts. Quan els tipus pugen, hipoteques i préstecs s'encareixen i la inflació es frena.`;
+  },
+  creixement: () => `Espanya creix un <b>${pct(val('ESP', 'creix', Y))}</b> el ${Y}, més que la zona euro (${pct(val('EURO', 'creix', Y))}), amb un atur del ${pct(val('ESP', 'atur', Y))}.
+    Les economies emergents com l'Índia (${pct(val('IND', 'creix', Y))}) creixen molt més de pressa. <b>Què mirar:</b> la riquesa per habitant, que diu més que el creixement total.`,
+  immigracio: () => {
+    const e = IE().ESP, [aF, f] = imLast('ESP', 'nascutsFora'), [aO, o] = imLast('ESP', 'ordres');
+    return `El <b>${pct(f / e.pob[aF] * 100)}</b> de la població d'Espanya ha nascut a fora. La majoria treballa, però amb més atur i més pobresa que els nascuts aquí,
+      i només es compleix ${artPct(e.retorns[aO] / o * 100, 0)} de les ordres d'expulsió. <b>Què mirar:</b> el percentatge al teu poble.`;
+  },
+  pensions: () => {
+    const [aD, d] = dmLast('ESP', 'depVell'), d50 = DM().ESP.depVellProj[2050];
+    return `Avui hi ha <b>${nf(100 / d, 1)} persones en edat de treballar per cada persona gran</b>; el 2050 n'hi haurà <b>${nf(100 / d50, 1)}</b>.
+      Com que les pensions es paguen amb les cotitzacions d'avui, el sistema haurà de canviar: jubilació més tardana, més cotitzacions, pensions més baixes o més treballadors.`;
+  },
+};
+function rapidHTML(v) {
+  try { const t = RAPID[v]?.(); return t ? `<div class="rapid"><span class="rtit">⏱️ En 30 segons</span><p>${t}</p></div>` : ''; }
+  catch { return ''; }
+}
+
+// ── Plegar el detall ──
+const PLEGA = new Set(['inici', 'inflacio', 'sous', 'impostos', 'altra', 'deute', 'eua', 'borsa', 'tipus', 'creixement', 'immigracio', 'pensions']);
+let detallObert = lsGet('economia_detall', {});
+function plega(el) {
+  const nodes = [...el.children];
+  let keep = nodes[0]?.classList.contains('intro') ? 1 : 0;
+  if (nodes[keep]?.classList.contains('tiles')) keep++;
+  const rap = rapidHTML(view);
+  if (rap) (keep ? nodes[0].insertAdjacentHTML('afterend', rap) : el.insertAdjacentHTML('afterbegin', rap));
+  const resta = nodes.slice(keep);
+  if (!resta.length) return;
+  const det = document.createElement('details');
+  det.className = 'detall';
+  det.open = !!detallObert[view];
+  const blocs = resta.reduce((s, n) => s + (n.classList.contains('grid') ? n.querySelectorAll(':scope > .card, :scope > div').length : 1), 0);
+  det.innerHTML = `<summary><span class="dobre">📊 Veure el detall</span><span class="dtanca">▲ Amagar el detall</span><span class="muted">${blocs} blocs amb gràfics, comparacions i fonts</span></summary>`;
+  resta.forEach(n => det.appendChild(n));
+  el.appendChild(det);
+}
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d.matches?.('details.detall')) return;
+  detallObert[view] = d.open; lsSet('economia_detall', detallObert);
+  if (d.open) flushCharts();
+}, true);
+
+// ── Glossari emergent ──
+const GLOSSARI = [
+  ['PIB (producte interior brut)', 'El valor de tots els béns i serveis que un país produeix en un any. És la mida de l\'economia.', /\bPIB\b/],
+  ['Creixement econòmic', 'Quant augmenta el PIB d\'un any a l\'altre, descomptant la pujada de preus.'],
+  ['Recessió', 'Quan l\'economia es fa petita durant uns mesos seguits. Normalment puja l\'atur.', /recessió/i],
+  ['Inflació', 'La pujada general dels preus en un any. Si és del 3 %, el que costava 100 € ara en costa 103.', /inflació/i],
+  ['IPC', 'Índex de preus de consum: la cistella de productes que es fa servir per mesurar la inflació.', /\bIPCH?\b/],
+  ['Deflació', 'Quan els preus baixen de manera general. Sembla bo, però la gent ajorna compres i l\'economia es frena.', /deflació/i],
+  ['Sou nominal i sou real', 'El nominal és el que diu la nòmina. El real és el que pots comprar amb aquell sou, un cop descomptada la inflació.', /sou real|sous reals/i],
+  ['Deute públic', 'Tot el que deuen l\'estat, les comunitats autònomes i els ajuntaments.', /deute públic/i],
+  ['Dèficit públic', 'Quan un any l\'estat gasta més del que ingressa. Cada dèficit fa créixer el deute.', /dèficit/i],
+  ['Prima de risc', 'Quant més interès paga un país que Alemanya per demanar prestat. Mesura la desconfiança dels inversors.', /prima de risc/i],
+  ['Banc central', 'L\'organisme que controla la moneda i fixa els tipus d\'interès: el BCE a la zona euro, la Reserva Federal als EUA.', /bancs? centrals?/i],
+  ['Tipus d\'interès', 'El preu de demanar diners prestats. El banc central fixa el de referència.', /tipus d'interès/i],
+  ['Euríbor', 'El tipus al qual els bancs europeus es deixen diners entre ells. Moltes hipoteques s\'hi calculen. Segueix de prop el tipus del BCE.', /euríbor/i],
+  ['Paritat de poder adquisitiu (PPA)', 'Una manera de comparar països tenint en compte que la vida no costa el mateix a tot arreu. Un dòlar a l\'Índia compra més que a Suïssa.', /\bPPA\b|paritat de poder adquisitiu/i],
+  ['Balança per compte corrent', 'La diferència entre el que un país ven i cobra de l\'estranger i el que hi compra i paga.', /compte corrent/i],
+  ['Taxa d\'atur', 'El percentatge de persones que volen treballar i no troben feina.'],
+  ['Bo del Tresor', 'Un préstec que fas a l\'estat: li deixes diners i te\'ls retorna amb interessos en un termini fix (de mesos a 30 anys). Els "bons a 10 anys" són la referència per saber quant paga un país per endeutar-se.', /\bbons\b/i],
+  ['Rendiment d\'un bo', 'L\'interès que cobra qui compra el bo avui. Si els inversors desconfien, venen bons, el preu baixa i el rendiment puja: l\'estat haurà de pagar més pel deute nou.', /rendiment/i],
+  ['Solvència i liquiditat', 'Solvència és poder pagar tots els deutes a la llarga. Liquiditat és tenir els diners el dia que te\'ls demanen. Es pot ser solvent i tenir una crisi de liquiditat.', /solvent|solvència|liquiditat/i],
+  ['Mercat repo', 'On bancs i fons es deixen diners a molt curt termini (sovint d\'un dia per l\'altre) donant bons com a garantia. És la "canonada" per on circulen els diners del sistema.', /mercat repo/i],
+  ['Repo invers de la Fed', 'Un lloc on els fons monetaris poden deixar diners a la Reserva Federal d\'un dia per l\'altre. Va arribar a tenir més de 2 bilions de dòlars; ara és gairebé buit.', /repo invers/i],
+  ['Basis trade', 'Estratègia de hedge funds: comprar bons i vendre futurs sobre aquests bons per guanyar una diferència petita, multiplicada amb diners manllevats. Si el finançament s\'encareix, han de vendre de cop.', /basis trade/i],
+  ['Carry trade', 'Demanar prestat en una moneda amb tipus baixos (com el ien) per invertir on es cobra més. Si aquella moneda s\'encareix, tothom vol sortir alhora.', /carry trade/i],
+  ['Expansió i reducció quantitativa (QE i QT)', 'QE: el banc central compra bons amb diners nous per abaratir el crèdit. QT: fa el contrari, deixa vèncer els bons o els ven, i retira diners del sistema.', /\bQ[ET]\b/],
+  ['Palanquejament', 'Invertir amb diners manllevats. Multiplica els guanys i també les pèrdues, i obliga a vendre si et demanen més garanties.', /palanquejament/i],
+  ['Progressivitat en fred', 'Quan els trams de l\'IRPF no s\'actualitzen amb la inflació: amb el mateix poder adquisitiu pagues un percentatge més alt d\'impostos.', /progressivitat en fred/i],
+  ['Cunya fiscal', 'Tot el que l\'estat es queda del cost d\'un treballador: IRPF i cotitzacions del treballador i de l\'empresa.', /cunya fiscal/i],
+  ['Taxa de dependència', 'Quantes persones grans (65 anys o més) hi ha per cada 100 en edat de treballar (15-64). Com més alta, més pesen les pensions sobre qui treballa.', /taxa de dependència/i],
+  ['Sistema de repartiment', 'Les pensions d\'avui es paguen amb les cotitzacions dels treballadors d\'avui, no amb el que cada jubilat va estalviar.', /sistema de repartiment/i],
+  ['Tipus de canvi efectiu', 'La força d\'una moneda davant d\'una cistella de monedes dels seus socis comercials, no només davant d\'una.', /tipus de canvi efectiu/i],
+  ['Indicador Buffett', 'El valor de totes les empreses cotitzades d\'un país dividit pel seu PIB. Si és molt alt, la borsa està cara respecte a l\'economia real.', /indicador Buffett/i],
+  ['Fons indexat', 'Un fons que compra totes les accions d\'un índex (com l\'S&P 500) en proporció al seu valor. Si poques empreses valen molt, el fons depèn sobretot d\'elles.', /fons indexats?/i],
+  ['Corba de tipus', 'Els tipus d\'interès que paga un estat a diferents terminis (2, 10, 30 anys). Si els de curt termini superen els de llarg, es diu que la corba està invertida.', /corba (de tipus|invertida)/i],
+  ['Remeses', 'Diners que els immigrants envien a les seves famílies al país d\'origen.', /remeses/i],
+  ['Reserves d\'or', 'L\'or que guarden els bancs centrals. No depèn de cap altre país ni es pot congelar si està guardat a casa, per això se\'n compra més des del 2022.', /reserves d'or/i],
+];
+const NO_GLOS = 'svg,select,option,button,a,input,abbr,summary,.tip,.chips,.rutabar,.rutanext,h1,h2,h3,.tile .v,.bar,th,td,.legend,.stack,.stackleg,.muted';
+function glossaritza(el) {
+  if (view === 'aprendre') return;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => !n.nodeValue.trim() || n.parentElement.closest(NO_GLOS) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const [t, d, re] of GLOSSARI) {
+    if (!re) continue;
+    for (const n of nodes) {
+      if (!n.parentNode) continue;
+      const m = re.exec(n.nodeValue);
+      if (!m) continue;
+      const trobat = n.splitText(m.index), resta = trobat.splitText(m[0].length);
+      const ab = document.createElement('abbr');
+      ab.className = 'terme'; ab.tabIndex = 0; ab.dataset.t = t; ab.dataset.d = d; ab.textContent = trobat.nodeValue;
+      trobat.replaceWith(ab);
+      nodes.push(resta);
+      break; // només la primera aparició de cada terme a cada pàgina
+    }
+  }
+}
+function mostraTerme(a) {
+  const tip = $('#glostip');
+  tip.innerHTML = `<b>${esc(a.dataset.t)}</b><p>${esc(a.dataset.d)}</p><a href="#aprendre">Tot el glossari →</a>`;
+  tip.style.display = 'block';
+  const r = a.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  tip.style.top = (r.bottom + h + 8 > innerHeight ? r.top - h - 6 : r.bottom + 6) + 'px';
+}
+const amagaTerme = () => { const t = $('#glostip'); if (t) t.style.display = 'none'; };
+document.addEventListener('mouseover', e => { const a = e.target.closest?.('abbr.terme'); if (a) mostraTerme(a); });
+document.addEventListener('mouseout', e => { if (e.target.closest?.('abbr.terme') && !e.relatedTarget?.closest?.('#glostip')) amagaTerme(); });
+document.addEventListener('focusin', e => { const a = e.target.closest?.('abbr.terme'); if (a) mostraTerme(a); });
+document.addEventListener('click', e => {
+  const a = e.target.closest?.('abbr.terme');
+  if (a) { mostraTerme(a); return; }
+  if (!e.target.closest?.('#glostip') || e.target.closest?.('#glostip a')) amagaTerme();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') amagaTerme(); });
+addEventListener('scroll', amagaTerme, { passive: true });
+
 /* ── 📊 Comparar ────────────────────────────────────────────────────────────── */
 const COLS = [
   ['pib', 'PIB', money, null], ['creix', 'Creix.', v => sgn(v) + ' %', null], ['infl', 'Inflació', v => pct(v), [5]],
@@ -2364,43 +2651,7 @@ function renderComparar() {
 
 /* ── 📘 Com funciona ────────────────────────────────────────────────────────── */
 function renderAprendre() {
-  const G = [
-    ['PIB (producte interior brut)', 'El valor de tots els béns i serveis que un país produeix en un any. És la mida de l\'economia.'],
-    ['Creixement econòmic', 'Quant augmenta el PIB d\'un any a l\'altre, descomptant la pujada de preus.'],
-    ['Recessió', 'Quan l\'economia es fa petita durant uns mesos seguits. Normalment puja l\'atur.'],
-    ['Inflació', 'La pujada general dels preus en un any. Si és del 3 %, el que costava 100 € ara en costa 103.'],
-    ['IPC', 'Índex de preus de consum: la cistella de productes que es fa servir per mesurar la inflació.'],
-    ['Deflació', 'Quan els preus baixen de manera general. Sembla bo, però la gent ajorna compres i l\'economia es frena.'],
-    ['Sou nominal i sou real', 'El nominal és el que diu la nòmina. El real és el que pots comprar amb aquell sou, un cop descomptada la inflació.'],
-    ['Deute públic', 'Tot el que deuen l\'estat, les comunitats autònomes i els ajuntaments.'],
-    ['Dèficit públic', 'Quan un any l\'estat gasta més del que ingressa. Cada dèficit fa créixer el deute.'],
-    ['Prima de risc', 'Quant més interès paga un país que Alemanya per demanar prestat. Mesura la desconfiança dels inversors.'],
-    ['Banc central', 'L\'organisme que controla la moneda i fixa els tipus d\'interès: el BCE a la zona euro, la Reserva Federal als EUA.'],
-    ['Tipus d\'interès', 'El preu de demanar diners prestats. El banc central fixa el de referència.'],
-    ['Euríbor', 'El tipus al qual els bancs europeus es deixen diners entre ells. Moltes hipoteques s\'hi calculen. Segueix de prop el tipus del BCE.'],
-    ['Paritat de poder adquisitiu (PPA)', 'Una manera de comparar països tenint en compte que la vida no costa el mateix a tot arreu. Un dòlar a l\'Índia compra més que a Suïssa.'],
-    ['Balança per compte corrent', 'La diferència entre el que un país ven i cobra de l\'estranger i el que hi compra i paga.'],
-    ['Taxa d\'atur', 'El percentatge de persones que volen treballar i no troben feina.'],
-    ['Bo del Tresor', 'Un préstec que fas a l\'estat: li deixes diners i te\'ls retorna amb interessos en un termini fix (de mesos a 30 anys). Els "bons a 10 anys" són la referència per saber quant paga un país per endeutar-se.'],
-    ['Rendiment d\'un bo', 'L\'interès que cobra qui compra el bo avui. Si els inversors desconfien, venen bons, el preu baixa i el rendiment puja: l\'estat haurà de pagar més pel deute nou.'],
-    ['Solvència i liquiditat', 'Solvència és poder pagar tots els deutes a la llarga. Liquiditat és tenir els diners el dia que te\'ls demanen. Es pot ser solvent i tenir una crisi de liquiditat.'],
-    ['Mercat repo', 'On bancs i fons es deixen diners a molt curt termini (sovint d\'un dia per l\'altre) donant bons com a garantia. És la "canonada" per on circulen els diners del sistema.'],
-    ['Repo invers de la Fed', 'Un lloc on els fons monetaris poden deixar diners a la Reserva Federal d\'un dia per l\'altre. Va arribar a tenir més de 2 bilions de dòlars; ara és gairebé buit.'],
-    ['Basis trade', 'Estratègia de hedge funds: comprar bons i vendre futurs sobre aquests bons per guanyar una diferència petita, multiplicada amb diners manllevats. Si el finançament s\'encareix, han de vendre de cop.'],
-    ['Carry trade', 'Demanar prestat en una moneda amb tipus baixos (com el ien) per invertir on es cobra més. Si aquella moneda s\'encareix, tothom vol sortir alhora.'],
-    ['Expansió i reducció quantitativa (QE i QT)', 'QE: el banc central compra bons amb diners nous per abaratir el crèdit. QT: fa el contrari, deixa vèncer els bons o els ven, i retira diners del sistema.'],
-    ['Palanquejament', 'Invertir amb diners manllevats. Multiplica els guanys i també les pèrdues, i obliga a vendre si et demanen més garanties.'],
-    ['Progressivitat en fred', 'Quan els trams de l\'IRPF no s\'actualitzen amb la inflació: amb el mateix poder adquisitiu pagues un percentatge més alt d\'impostos.'],
-    ['Cunya fiscal', 'Tot el que l\'estat es queda del cost d\'un treballador: IRPF i cotitzacions del treballador i de l\'empresa.'],
-    ['Taxa de dependència', 'Quantes persones grans (65 anys o més) hi ha per cada 100 en edat de treballar (15-64). Com més alta, més pesen les pensions sobre qui treballa.'],
-    ['Sistema de repartiment', 'Les pensions d\'avui es paguen amb les cotitzacions dels treballadors d\'avui, no amb el que cada jubilat va estalviar.'],
-    ['Tipus de canvi efectiu', 'La força d\'una moneda davant d\'una cistella de monedes dels seus socis comercials, no només davant d\'una.'],
-    ['Indicador Buffett', 'El valor de totes les empreses cotitzades d\'un país dividit pel seu PIB. Si és molt alt, la borsa està cara respecte a l\'economia real.'],
-    ['Fons indexat', 'Un fons que compra totes les accions d\'un índex (com l\'S&P 500) en proporció al seu valor. Si poques empreses valen molt, el fons depèn sobretot d\'elles.'],
-    ['Corba de tipus', 'Els tipus d\'interès que paga un estat a diferents terminis (2, 10, 30 anys). Si els de curt termini superen els de llarg, es diu que la corba està invertida.'],
-    ['Remeses', 'Diners que els immigrants envien a les seves famílies al país d\'origen.'],
-    ['Reserves d\'or', 'L\'or que guarden els bancs centrals. No depèn de cap altre país ni es pot congelar si està guardat a casa, per això se\'n compra més des del 2022.'],
-  ];
+  const G = GLOSSARI;
   return `
   <div class="intro">
     <h2>📘 Com funciona l'economia mundial</h2>
