@@ -83,7 +83,7 @@ registra el gràfic i `flushCharts()` el pinta quan el contenidor ja té amplada
 
 - `MENU` agrupa les vistes en 5 blocs i `NOMS` en dona el nom; si afegeixes una vista, posa-la en tots dos.
 - `renderView()` fa, per ordre: `renderNav()` → HTML de la vista → `plega()` (si és a `PLEGA`) → rutes → `glossaritza()` → `flushCharts()`.
-- `plega()` deixa a la vista el primer `.intro` i la primera fila de `.tiles`, hi afegeix `RAPID[vista]()` i posa la resta dins
+- `plega()` deixa a la vista el primer `.intro`, la primera fila de `.tiles` i qualsevol targeta amb classe `.sempre`, hi afegeix `RAPID[vista]()` i posa la resta dins
   `<details class="detall">`. Els gràfics d'un detall tancat **no es dibuixen** fins que s'obre (`flushCharts` els guarda a `pending`).
 - `RAPID` són frases escrites a mà amb xifres calculades: si les dades canvien de signe, revisa que el text encara digui la veritat.
 - `RUTES`: preguntes amb passos `[vista, per què]`. L'estat es desa a `economia_ruta`.

@@ -375,8 +375,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.9.1';
-const BUILD_DATE = '2026-09-16';
+const APP_VERSION = '1.9.2';
+const BUILD_DATE = '2026-09-17';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -953,19 +953,100 @@ function renderInici() {
 }
 
 /* ── 🛒 Inflació ────────────────────────────────────────────────────────────── */
-let calc = lsGet('economia_calc', { c: 'ESP', a0: 2020, a1: Y - 1, q: 100 });
-function setCalc(k, v) { calc[k] = k === 'c' ? v : +v; lsSet('economia_calc', calc); renderView(); }
+// La inflació acumulada, traduïda a diners: la compra del mes, el sou i els estalvis.
+let calc = lsGet('economia_calc2', { c: 'ESP', a0: 2015, a1: Y - 1, q: 100, m: 2000 });
+function setCalc(k, v) { calc[k] = k === 'c' ? v : +v; lsSet('economia_calc2', calc); renderView(); }
+const SIMBOLS = { EUR: '€', USD: '$', GBP: '£', JPY: '¥', CHF: 'CHF', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł', CAD: '$', AUD: '$' };
+function simbol(c) { const m = ent(c)?.moneda || (c === 'EURO' || c === 'EU' ? 'EUR' : ''); return SIMBOLS[m] || m || ''; }
+const diners = (v, c, d = 0) => v == null ? '–' : nf(v, d) + (simbol(c) ? ' ' + simbol(c) : '');
+// anys amb dada d'inflació per al país triat
+const anysInfl = c => Object.keys(ent(c)?.s.infl || {}).map(Number).filter(a => a <= Y).sort((a, b) => a - b);
+const anysCalc = () => { const a = [...anysInfl(calc.c)]; return { a0: Math.min(calc.a0, calc.a1), a1: Math.max(calc.a0, calc.a1), anys: a }; };
+
+// Els tres efectes concrets de la inflació acumulada: compra, sou i estalvis.
+function butxacaHTML() {
+  const c = calc.c, { a0, a1, anys } = anysCalc();
+  const cr = cumInfl(c, a0, a1);
+  const opc = (k, sel0) => anys.map(a => `<option ${a === sel0 ? 'selected' : ''}>${a}</option>`).join('');
+  const tria = `
+    <div class="calc">
+      <select onchange="setCalc('c', this.value)" aria-label="País">${[...Object.keys(D.grups), ...countries()].map(c2 => `<option value="${c2}" ${c2 === c ? 'selected' : ''}>${esc(label(c2))}</option>`).join('')}</select>
+      <span>de l'any</span>
+      <select onchange="setCalc('a0', this.value)" aria-label="Any inicial">${opc('a0', calc.a0)}</select>
+      <span>fins al</span>
+      <select onchange="setCalc('a1', this.value)" aria-label="Any final">${opc('a1', calc.a1)}</select>
+    </div>`;
+  if (cr == null) return `<div class="card sempre"><h3>🧺 Com es nota a la butxaca</h3>${tria}<p class="muted">No hi ha dades d'inflació per a tots aquests anys.</p></div>`;
+  // els grups (món, avançades, emergents) barregen monedes: en diners no vol dir res
+  if (!simbol(c)) return `<div class="card sempre"><h3>🧺 Com es nota a la butxaca</h3>${tria}
+    <p class="sub"><b>${esc(ent(c).nom)}</b>: els preus han pujat un <b>${pct(cr, 1)}</b> acumulat entre el ${a0} i el ${a1}, però és una mitjana de molts països amb monedes diferents.
+    <b>Tria un país</b> aquí sobre per veure què vol dir això a la compra, al sou i als estalvis.</p></div>`;
+  const f = 1 + cr / 100;                                   // els preus s'han multiplicat per això
+  const m = Math.max(1, calc.m || 0);                       // despesa d'avui, a mes
+  const abans = m / f, mesMes = m - abans;
+  const sou0 = val(c, 'souNom', a0), sou1 = val(c, 'souNom', a1);
+  const souCal = sou0 == null ? null : sou0 * f;            // sou que caldria per empatar amb els preus
+  const souDif = souCal == null || sou1 == null ? null : sou1 - souCal;
+  const est = 10000, estAra = est / f;
+  return `
+  <div class="card sempre">
+    <h3>🧺 Com es nota a la butxaca</h3>
+    <p class="sub">Els preus <b>${esc(deNom(ent(c).nom))}</b> han pujat un <b>${pct(cr, 1)}</b> acumulat entre el ${a0} i el ${a1}.
+    Això, traduït a diners, vol dir tres coses:</p>
+    ${tria}
+    <div class="grid g3" style="margin-top:12px">
+      <div class="callout">
+        <b>🛒 La compra i les factures</b>
+        <div class="calc" style="margin:6px 0">
+          <span>Si avui gastes</span>
+          <input type="number" value="${m}" min="1" step="50" style="width:110px" onchange="setCalc('m', this.value)" aria-label="Despesa mensual">
+          <span>${esc(simbol(c))} al mes</span>
+        </div>
+        <p class="sub">El ${a0} el mateix et costava <b class="num">${diners(abans, c)}</b>.
+        Pagues <b class="num">${diners(mesMes, c)} més cada mes</b>, és a dir <b class="num">${diners(mesMes * 12, c)} més cada any</b>, per viure igual.</p>
+      </div>
+      <div class="callout">
+        <b>💶 El sou que caldria</b>
+        ${sou0 == null || sou1 == null ? '<p class="sub">No hi ha dades de sous de l\'OCDE per a aquest país o aquests anys.</p>' : `
+        <p class="sub">El sou mitjà del ${a0} era <b class="num">${diners(sou0, c)}</b> l'any. Per comprar el mateix el ${a1} hauria de ser
+        <b class="num">${diners(souCal, c)}</b>, i de fet és <b class="num">${diners(sou1, c)}</b>:
+        <b class="num">${diners(Math.abs(souDif), c)} ${souDif >= 0 ? 'per sobre' : 'per sota'}</b> del que faria falta.</p>
+        ${souDif >= 0 ? '<span class="badge good">▲ el sou ha guanyat la cursa</span>' : '<span class="badge bad">▼ el sou s\'ha quedat enrere</span>'}`}
+      </div>
+      <div class="callout">
+        <b>🏦 Els estalvis parats</b>
+        <p class="sub">${diners(est, c)} guardats al calaix (o en un compte sense interessos) el ${a0} avui compren el que aleshores valia
+        <b class="num">${diners(estAra, c)}</b>: la inflació se n'ha menjat <b class="num">${diners(est - estAra, c)}</b>, un ${pct((1 - 1 / f) * 100, 0)} del seu valor.</p>
+      </div>
+    </div>
+    <p class="muted">L'IPC és una mitjana de tot el que compra el conjunt del país. Si al teu pressupost hi pesen molt el lloguer, la llum o el menjar
+    —que han pujat més que la mitjana— la teva inflació real és més alta. Els sous són el sou mitjà a temps complet de l'OCDE, abans d'impostos:
+    el que et queda net depèn també de l'<a href="#impostos">IRPF i les cotitzacions</a>.${a1 >= Y ? ` Compte: el ${Y} i endavant són previsió de l'FMI.` : ''}</p>
+  </div>`;
+}
+
 function renderInflacio() {
-  const a0 = 2020, a1 = Y - 1;
-  const rows = [...sel].map(c => ({ c, name: label(c), v: cumInfl(c, a0, a1), color: col(c) })).sort((a, b) => b.v - a.v);
+  const { a0, a1 } = anysCalc();
+  const rows = [...sel].map(c => ({ c, name: label(c), v: cumInfl(c, a0, a1), color: col(c) })).filter(r => r.v != null).sort((a, b) => b.v - a.v);
   const big = sel.some(c => pts(c, 'infl', 2000).some(p => p[1] > 30));
-  const cr = cumInfl(calc.c, Math.min(calc.a0, calc.a1), Math.max(calc.a0, calc.a1));
-  const yrs = Object.keys(ent(calc.c)?.s.infl || {}).map(Number).filter(a => a <= Y);
+  const cr = cumInfl(calc.c, a0, a1);
+  const yrs = anysInfl(calc.c);
   return `
   <div class="intro">
     <h2>🛒 Inflació: per què tot és més car</h2>
-    <p class="sub">La <b>inflació</b> és el percentatge que pugen els preus en un any. Un 2 % anual es considera sa; per sobre, el sou rendeix menys cada mes.</p>
+    <p class="sub">La <b>inflació</b> és el percentatge que pugen els preus en un any. Sembla poca cosa, però s'acumula: any rere any es va menjant
+    el que pots comprar amb els mateixos diners. Aquí ho veus en euros, no en percentatges.</p>
   </div>
+  ${cr == null ? '' : `<div class="tiles">
+    ${tile(`Preus des del ${a0}`, '+' + pct(cr, 1), `${esc(ent(calc.c).nom)}, acumulat fins al ${a1}`)}
+    ${tile(`${diners(100, calc.c)} del ${a0}`, diners(100 / (1 + cr / 100), calc.c, 0), `és el que compren avui`, '<span class="badge bad">▼ poder de compra</span>')}
+    ${(() => { const s0 = val(calc.c, 'souNom', a0), s1 = val(calc.c, 'souNom', a1);
+      if (s0 == null || s1 == null) return tile('Objectiu dels bancs centrals', '2 %', 'inflació anual considerada sana');
+      const w = (s1 / s0 - 1) * 100;
+      return tile(`Sou mitjà des del ${a0}`, sgn(w, 1) + ' %', 'en diners, abans d\'impostos',
+        w >= cr ? '<span class="badge good">▲ per sobre dels preus</span>' : '<span class="badge bad">▼ per sota dels preus</span>'); })()}
+  </div>`}
+  ${butxacaHTML()}
   <div class="card">
     <h3>Inflació anual per país</h3>
     <p class="sub">Tria fins a ${MAX_SEL} països o zones per comparar.</p>
@@ -976,26 +1057,24 @@ function renderInflacio() {
   </div>
   <div class="grid g2">
     <div class="card">
-      <h3>Quant han pujat els preus des del ${a0}</h3>
-      <p class="sub">Pujada acumulada entre el ${a0} i el ${a1}. És el que costa de més avui el mateix carro de la compra.</p>
-      ${barsHTML(rows, { fmt: v => '+' + pct(v, 0) })}
+      <h3>Quant han pujat els preus del ${a0} al ${a1}</h3>
+      <p class="sub">Pujada acumulada de tots aquests anys junts. És el que costa de més avui el mateix carro de la compra.
+      Canvia els anys a la targeta de dalt.</p>
+      ${rows.length ? barsHTML(rows, { fmt: v => '+' + pct(v, 0) }) : '<p class="muted">Cap país seleccionat té dades per a tots aquests anys.</p>'}
     </div>
     <div class="card">
       <h3>🧮 Calculadora: què valen els teus diners?</h3>
       <p class="sub">Quants diners necessites avui per comprar el mateix que abans.</p>
       <div class="calc">
-        <select onchange="setCalc('c', this.value)" aria-label="País">${[...Object.keys(D.grups), ...countries()].map(c => `<option value="${c}" ${c === calc.c ? 'selected' : ''}>${esc(label(c))}</option>`).join('')}</select>
-      </div>
-      <div class="calc" style="margin-top:8px">
         <input type="number" value="${calc.q}" min="1" style="width:110px" onchange="setCalc('q', this.value)" aria-label="Quantitat">
-        <span>de l'any</span>
+        <span>${esc(simbol(calc.c))} de l'any</span>
         <select onchange="setCalc('a0', this.value)" aria-label="Any inicial">${yrs.map(a => `<option ${a === calc.a0 ? 'selected' : ''}>${a}</option>`).join('')}</select>
         <span>equivalen a l'any</span>
         <select onchange="setCalc('a1', this.value)" aria-label="Any final">${yrs.map(a => `<option ${a === calc.a1 ? 'selected' : ''}>${a}</option>`).join('')}</select>
       </div>
       <div class="callout" style="margin-top:12px">
-        ${cr == null ? 'No hi ha dades per a tots aquests anys.' : `<div class="res num">${nf(calc.q * (1 + cr / 100) ** (calc.a1 >= calc.a0 ? 1 : -1), 2)}</div>
-        <div class="sub">Els preus ${calc.a1 >= calc.a0 ? 'han pujat' : 'eren'} un ${pct(cr)} ${calc.a1 >= calc.a0 ? '' : 'més baixos'}. ${calc.a1 >= calc.a0 ? `Amb els mateixos ${nf(calc.q, 0)} d'abans ara només compres el que abans valia ${nf(calc.q / (1 + cr / 100), 2)}.` : ''}</div>`}
+        ${cr == null ? 'No hi ha dades per a tots aquests anys.' : `<div class="res num">${diners(calc.q * (1 + cr / 100) ** (calc.a1 >= calc.a0 ? 1 : -1), calc.c, 2)}</div>
+        <div class="sub">Els preus ${calc.a1 >= calc.a0 ? 'han pujat' : 'eren'} un ${pct(cr)} ${calc.a1 >= calc.a0 ? '' : 'més baixos'}. ${calc.a1 >= calc.a0 ? `Amb els mateixos ${diners(calc.q, calc.c)} d'abans ara només compres el que abans valia ${diners(calc.q / (1 + cr / 100), calc.c, 2)}.` : ''}</div>`}
       </div>
       <p class="muted">Calculat amb la inflació mitjana anual de l'FMI. Els anys a partir del ${Y} són previsió.</p>
     </div>
@@ -2441,8 +2520,12 @@ const RAPID = {
     Els estats deuen el ${pct(val(W, 'deute', Y), 0)} de tot el que es produeix al món, i les economies emergents creixen més del doble que les riques
     (${pct(val('OEMDC', 'creix', Y))} vs ${pct(val('ADVEC', 'creix', Y))}).`;
   },
-  inflacio: () => `Del 2020 al ${Y - 1}, a Espanya els <b>preus han pujat un ${pct(cumInfl('ESP', 2020, Y - 1), 0)}</b>, i no tornaran enrere.
-    El ${Y} la inflació és del ${pct(val('ESP', 'infl', Y))}, per sobre de l'objectiu del 2 %. <b>Què mirar:</b> la calculadora per saber quant valen avui els teus diners.`,
+  inflacio: () => {
+    const a0 = 2015, a1 = Y - 1, cr = cumInfl('ESP', a0, a1), fa = 1 + cr / 100;
+    return `Des del ${a0}, a Espanya els <b>preus han pujat un ${pct(cr, 0)}</b>: el que valia 100 € ara en val ${nf(100 * fa, 0)} €.
+    Una família que avui gasta 2.000 € al mes pagava ${nf(2000 / fa, 0)} € pel mateix el ${a0}, i qui tenia 10.000 € parats al banc n'ha perdut
+    ${nf(10000 - 10000 / fa, 0)} € de poder de compra. <b>Què mirar:</b> la targeta "Com es nota a la butxaca".`;
+  },
   sous: () => {
     const T = IMP().ESP, aT = impLast('ESP');
     let net = null;
@@ -2512,7 +2595,8 @@ function plega(el) {
   if (nodes[keep]?.classList.contains('tiles')) keep++;
   const rap = rapidHTML(view);
   if (rap) (keep ? nodes[0].insertAdjacentHTML('afterend', rap) : el.insertAdjacentHTML('afterbegin', rap));
-  const resta = nodes.slice(keep);
+  const resta = [];
+  for (const n of nodes.slice(keep)) { if (n.classList.contains('sempre')) el.appendChild(n); else resta.push(n); }
   if (!resta.length) return;
   const det = document.createElement('details');
   det.className = 'detall';
