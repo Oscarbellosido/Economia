@@ -643,6 +643,59 @@ async function main() {
     console.log('Ocupació per nacionalitat ok', Object.keys(nac).length, 'nacionalitats,', mesSS);
   } catch (e) { console.warn('Ocupació per nacionalitat ha fallat:', e.message); }
 
+  // ── Ocupació per lloc de naixement: Cens anual de l'INE (ocupats ÷ població de 16 a 64 anys, mateix any) ──
+  // Complementa immi.nac: aquí hi compten també els nascuts a fora que ja tenen la nacionalitat espanyola.
+  try {
+    const INE_T = 'https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/';
+    // [nom del país de naixement a l'INE, clau, nom en català, bandera]  (les claus són les de immi.nac)
+    const NAIX = [
+      ['España', 'ESP', 'Espanya', '🇪🇸'], ['Marruecos', '504', 'Marroc', '🇲🇦'], ['Rumanía', '642', 'Romania', '🇷🇴'],
+      ['Colombia', '170', 'Colòmbia', '🇨🇴'], ['Venezuela', '862', 'Veneçuela', '🇻🇪'], ['Italia', '380', 'Itàlia', '🇮🇹'],
+      ['China', '156', 'Xina', '🇨🇳'], ['Reino Unido', '826', 'Regne Unit', '🇬🇧'], ['Ucrania', '804', 'Ucraïna', '🇺🇦'],
+      ['Perú', '604', 'Perú', '🇵🇪'], ['Honduras', '340', 'Hondures', '🇭🇳'], ['Ecuador', '218', 'Equador', '🇪🇨'],
+      ['Argentina', '32', 'Argentina', '🇦🇷'], ['Bulgaria', '100', 'Bulgària', '🇧🇬'], ['Portugal', '620', 'Portugal', '🇵🇹'],
+      ['Paraguay', '600', 'Paraguai', '🇵🇾'], ['Bolivia', '68', 'Bolívia', '🇧🇴'], ['Brasil', '76', 'Brasil', '🇧🇷'],
+      ['Cuba', '192', 'Cuba', '🇨🇺'], ['Nicaragua', '558', 'Nicaragua', '🇳🇮'], ['República Dominicana', '214', 'República Dominicana', '🇩🇴'],
+      ['Argelia', '12', 'Algèria', '🇩🇿'], ['Senegal', '686', 'Senegal', '🇸🇳'], ['Pakistán', '586', 'Pakistan', '🇵🇰'],
+      ['India', '356', 'Índia', '🇮🇳'], ['Filipinas', '608', 'Filipines', '🇵🇭'], ['Francia', '250', 'França', '🇫🇷'], ['Alemania', '276', 'Alemanya', '🇩🇪'],
+    ];
+    // 1 · ocupats de 16 anys o més per sexe i país de naixement (taula 69957, total d'ocupacions)
+    const ocup = {}; let any = null;
+    for (const s of await get(INE_T + '69957?nult=1')) {
+      const [ambit, sexe, ocupacio, pais] = s.Nombre.split('. ').map(x => x.trim());
+      const d = s.Data?.[0];
+      if (ambit !== 'Total Nacional' || ocupacio !== 'Total' || sexe === 'Total' || !d) continue;
+      any = d.Anyo;
+      (ocup[pais] ||= {})[sexe === 'Hombres' ? 'H' : 'D'] = d.Valor;
+    }
+    if (!any || !ocup.Marruecos) throw new Error('Cens: sense ocupats per país de naixement');
+    // 2 · població de 16 a 64 anys del mateix any (taula 68522). És massa gran per demanar-la sencera:
+    //     una consulta per sexe i grup d'edat, només el total d'Espanya (el grup de 15-19 anys compta 4/5)
+    const EDATS = { 15665: 0.8, 15661: 1, 15666: 1, 15662: 1, 15658: 1, 15663: 1, 15667: 1, 15648: 1, 15649: 1, 15650: 1 };
+    const pob = {};
+    for (const [sx, k] of [[452, 'H'], [453, 'D']]) for (const [edat, f] of Object.entries(EDATS)) {
+      for (const s of await get(`${INE_T}68522?tv=349:16473&tv=18:${sx}&tv=360:${edat}&nult=5`)) {
+        const pais = s.Nombre.split('. ').map(x => x.trim())[4];
+        const d = s.Data?.find(x => x.Anyo === any);
+        if (d) (pob[pais] ||= { H: 0, D: 0 })[k] += d.Valor * f;
+      }
+    }
+    const naix = {};
+    for (const [nomIne, clau, nom, flag] of NAIX) {
+      const o = ocup[nomIne], p = pob[nomIne];
+      if (!o || !p || p.H < 5000 || p.D < 5000) continue;
+      naix[clau] = { nom, flag, pobH: Math.round(p.H), pobD: Math.round(p.D), afH: o.H, afD: o.D };
+    }
+    // tots els nascuts a fora: total menys nascuts a Espanya
+    if (ocup.Total && ocup['España'] && pob.Total && pob['España'])
+      naix.EXT = { nom: 'Tots els nascuts a fora', flag: '🌍', pobH: Math.round(pob.Total.H - pob['España'].H), pobD: Math.round(pob.Total.D - pob['España'].D),
+        afH: ocup.Total.H - ocup['España'].H, afD: ocup.Total.D - ocup['España'].D };
+    if (!naix.ESP || !naix['504']) throw new Error('falten dades d\'Espanya o del Marroc');
+    out.immi.naix = { any, paisos: naix };
+    out.fonts.immiNaix = { font: 'INE · Cens anual de població (ocupats i població per país de naixement, sexe i edat)', unitat: 'persones' };
+    console.log('Ocupació per lloc de naixement ok', Object.keys(naix).length, 'països,', any);
+  } catch (e) { console.warn('Ocupació per lloc de naixement ha fallat:', e.message); }
+
   // ── Banc Mundial: immigrants al món i remeses que s'envien als països d'origen ──
   try {
     const mon = {};
@@ -705,7 +758,7 @@ async function main() {
       if (!out.eua[c] && vell.eua?.[c]) { out.eua[c] = vell.eua[c]; if (f) out.fonts[f] = vell.fonts[f]; }
     if (!out.altra.orMensual && vell.altra?.orMensual) out.altra.orMensual = vell.altra.orMensual;
     for (const [c, f] of [['bons', 'bons'], ['impostos', 'impostos']]) if (!out.fiscal[c] && vell.fiscal?.[c]) { out.fiscal[c] = vell.fiscal[c]; out.fonts[f] = vell.fonts[f]; }
-    for (const [c, f] of [['eu', 'immiEU'], ['mon', 'immiMon'], ['cat', 'immiCat'], ['nac', 'immiNac']]) if (!out.immi[c] && vell.immi?.[c]) { out.immi[c] = vell.immi[c]; out.fonts[f] = vell.fonts[f]; }
+    for (const [c, f] of [['eu', 'immiEU'], ['mon', 'immiMon'], ['cat', 'immiCat'], ['nac', 'immiNac'], ['naix', 'immiNaix']]) if (!out.immi[c] && vell.immi?.[c]) { out.immi[c] = vell.immi[c]; out.fonts[f] = vell.fonts[f]; }
   }
   if (!out.paisos.USA.s.pib) throw new Error('Les dades del FMI han arribat buides; no es desa res.');
 

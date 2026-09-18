@@ -40,6 +40,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
   ├─ Seg. Social + INE→ immi.nac {mes, paisos[codi país SS|ESP|EXT].{nom, flag, pobH, pobD, afH, afD}}
   │                     (ocupació aproximada per nacionalitat: afiliats ÷ població de 16 a 64 anys, Espanya)
+  ├─ INE Cens anual   → immi.naix {any, paisos[mateixes claus].{nom, flag, pobH, pobD, afH, afD}}
+  │                     (el mateix per lloc de naixement: ocupats del cens ÷ població de 16 a 64 anys; afH/afD = ocupats)
   └─ Idescat (taules) → immi.cat {mun, com, anys, dades}: padró per lloc de naixement 2000-2022
         ↓
      dades.json  ──→  index.html: init() → D → go(vista) → renderXxx() → flushCharts()
@@ -160,7 +162,11 @@ Per a nacionalitats concretes (Marroc, Colòmbia...) `immi.nac` combina dues fon
   Si canvien els noms dels camps, deixarà de funcionar i es conservaran les dades anteriors.
 - Població per nacionalitat, sexe i grups d'edat de l'**INE** (ECP, taula 56936; la de 15-19 anys compta 4/5).
   Aquesta taula arriba fins a l'1 de gener del 2025; el mes de la Seguretat Social s'agafa igual que la data de població.
-- El text de la targeta ha de conservar els avisos: feina no declarada, nacionalitat ≠ lloc de naixement, aproximació.
+- Per **lloc de naixement** (`immi.naix`), el Cens anual de l'INE: ocupats per sexe i país de naixement (taula 69957)
+  i població per sexe, edat i país de naixement (taula 68522, massa gran: es demana per sexe i grup d'edat amb `tv=`).
+  La Seguretat Social no publica afiliats per lloc de naixement. La targeta té un selector entre les dues maneres
+  (`economia_nacvista`); no són del mateix any i no s'han de restar.
+- El text de la targeta ha de conservar els avisos: feina no declarada, dates diferents, aproximació.
 
 ## 9. Textos d'actualitat (revisar-los!)
 
