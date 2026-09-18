@@ -36,6 +36,7 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   │                     (pestanya Creixement: d'on surt el creixement, productivitat per hora, inversió i renda mediana)
   ├─ BIS EER + BCE    → divises.eer[moneda]["AAAA-MM"] (2020=100), divises.eur[moneda]["AAAA-MM"] (unitats per euro)
   ├─ Eurostat         → immi.eu[ISO3|EU][clau][any]   (pestanya "Immigració"; Grècia és EL a Eurostat)
+  │                     inclou ocupació per sexe (ocupHomes/ocupDones + Nat/NoUE) i llars sense feina (senseFeinaNat/NoUE)
   ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
   └─ Idescat (taules) → immi.cat {mun, com, anys, dades}: padró per lloc de naixement 2000-2022
         ↓
@@ -148,6 +149,9 @@ Tema políticament sensible. La pestanya ha de mantenir **beneficis i costos jun
 oficials amb la font a la vista, i sense generalitzacions sobre col·lectius. La part de "control"
 es mesura amb dades objectives (irregulars detectats, ordres d'expulsió, retorns efectius). No s'hi
 han posat dades de delinqüència per nacionalitat: són fàcils de malinterpretar sense context.
+No hi ha cap taula oficial de parelles amb un o dos sous per origen (ni a l'EPA de l'INE ni a Eurostat): la targeta
+"Llars amb un sou o amb dos?" s'hi acosta amb l'ocupació per sexe (`lfsa_ergacob`) i les llars amb intensitat laboral
+molt baixa (`ilc_lvhl16n`). La xifra exacta es podria calcular amb les microdades de l'EPA.
 
 ## 9. Textos d'actualitat (revisar-los!)
 

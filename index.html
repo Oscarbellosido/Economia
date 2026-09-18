@@ -384,8 +384,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.10.0';
-const BUILD_DATE = '2026-09-17';
+const APP_VERSION = '1.10.1';
+const BUILD_DATE = '2026-09-18';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -1989,6 +1989,34 @@ function renderImmigracio() {
     <p class="sub" style="margin-top:10px">A Espanya la majoria dels immigrants treballen, però amb <b>més atur, sous més baixos i molta més pobresa</b>. Això vol dir més ajudes socials,
     però també que sovint fan les feines que costa cobrir (camp, cures, hostaleria, construcció).</p>
   </div>
+
+  ${(() => {
+    const hN = imLast(p, 'ocupHomesNat'), hI = imLast(p, 'ocupHomesNoUE'), dN = imLast(p, 'ocupDonesNat'), dI = imLast(p, 'ocupDonesNoUE');
+    const sN = imLast(p, 'senseFeinaNat'), sI = imLast(p, 'senseFeinaNoUE');
+    if (!dN || !dI) return '';
+    const bretxaD = dN[1] - dI[1], bretxaH = hN && hI ? hN[1] - hI[1] : null;
+    return `<div class="card">
+    <h3>👫 Llars amb un sou o amb dos?</h3>
+    <p class="sub">Cap organisme publica quantes parelles tenen un sol sou o dos segons l'origen. Hi ha dues dades oficials que s'hi acosten:
+    <b>quantes dones i quants homes treballen</b> (si elles treballen menys, hi ha més llars amb un sol sou) i <b>quanta gent viu en llars on gairebé no treballa ningú</b>.</p>
+    <div class="callout">
+      <b>${esc(imNom(p))}, ${dI[0]}:</b>
+      ${bretxaH != null ? `els homes nascuts fora de la UE treballen ${Math.abs(bretxaH) < 1.5 ? '<b>igual</b> que els nascuts aquí' : bretxaH > 0 ? `<b>${nf(bretxaH, 0)} punts menys</b> que els nascuts aquí` : `<b>${nf(-bretxaH, 0)} punts més</b> que els nascuts aquí`} (${pct(hI[1], 0)} i ${pct(hN[1], 0)}),` : ''}
+      i les dones, ${bretxaD > 1.5 ? `<b>${nf(bretxaD, 0)} punts menys</b>` : bretxaD < -1.5 ? `<b>${nf(-bretxaD, 0)} punts més</b>` : '<b>igual</b>'} (${pct(dI[1], 0)} i ${pct(dN[1], 0)}).
+      ${sN && sI ? `Viuen en una llar on gairebé no treballa ningú el ${pct(sI[1], 1)} dels nascuts fora de la UE i el ${pct(sN[1], 1)} dels nascuts aquí${Math.abs(sI[1] - sN[1]) < 1.5 ? ': <b>pràcticament igual</b>' : ''}.` : ''}
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))">
+      <div><h3>Dones que treballen</h3><p class="sub">% de dones de 20 a 64 anys amb feina.</p>${pairBarsHTML(par('ocupDonesNoUE', 'ocupDonesNat'), { la: 'Nascudes fora de la UE', lb: 'Nascudes al país', fmt: v => pct(v, 0), me: p })}</div>
+      <div><h3>Homes que treballen</h3><p class="sub">% d'homes de 20 a 64 anys amb feina.</p>${pairBarsHTML(par('ocupHomesNoUE', 'ocupHomesNat'), { la: 'Nascuts fora de la UE', lb: 'Nascuts al país', fmt: v => pct(v, 0), me: p })}</div>
+      <div><h3>Llars on gairebé no treballa ningú</h3><p class="sub">% de persones de 18 a 64 anys en llars on els adults treballen menys del 20 % del temps que podrien.</p>${pairBarsHTML(par('senseFeinaNoUE', 'senseFeinaNat'), { la: 'Nascuts fora de la UE', lb: 'Nascuts al país', fmt: v => pct(v, 1), me: p })}</div>
+    </div>
+    <p class="sub" style="margin-top:10px">Per què importa: en una llar amb un sol sou baix i fills petits, el que es paga d'impostos sol ser menys del que costen la sanitat i l'escola.
+    Això passa igual si la família és d'aquí o de fora: el que ho decideix és <b>quants hi treballen i quant cobren</b>, no el passaport. La diferència és que aquest cas
+    és més freqüent entre les famílies immigrants perquè hi ha menys dones que treballen.</p>
+    <p class="muted">Font: Eurostat (enquesta de població activa i EU-SILC). Són persones, no parelles: la xifra exacta de parelles amb un o dos sous es podria calcular
+    amb les microdades de l'EPA de l'INE, però no es publica.</p>
+  </div>`;
+  })()}
 
   <div class="card">
     <h3>💸 5. Diners que s'envien als països d'origen</h3>

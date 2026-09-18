@@ -545,6 +545,11 @@ async function main() {
       { NAT: 'aturNat', NEU27_2020_FOR: 'aturNoUE' });
     put(await E('ilc_li32', 'age=Y18-64&c_birth=NAT&c_birth=NEU27_2020_FOR', { sex: 'T', unit: 'PC' }), null, 'c_birth',
       { NAT: 'pobresaNat', NEU27_2020_FOR: 'pobresaNoUE' });
+    // ocupació per sexe (llars amb un sol sou) i llars on gairebé no treballa ningú
+    put((await E('lfsa_ergacob', 'age=Y20-64&sex=M&sex=F&c_birth=NAT&c_birth=NEU27_2020_FOR', { unit: 'PC' })).map(r => ({ ...r, k: r.sex + r.c_birth })), null, 'k',
+      { MNAT: 'ocupHomesNat', MNEU27_2020_FOR: 'ocupHomesNoUE', FNAT: 'ocupDonesNat', FNEU27_2020_FOR: 'ocupDonesNoUE' });
+    put(await E('ilc_lvhl16n', 'age=Y18-64&sex=T&unit=PC&c_birth=NAT&c_birth=NEU27_2020_FOR'), null, 'c_birth',
+      { NAT: 'senseFeinaNat', NEU27_2020_FOR: 'senseFeinaNoUE' });
     out.immi.eu = eu;
     out.fonts.immiEU = { font: 'Eurostat · migració, asil, retorns, mercat laboral i pobresa per país de naixement', unitat: '' };
     console.log('Eurostat ok', Object.keys(eu).length, 'països');
