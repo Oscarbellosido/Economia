@@ -384,7 +384,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.11.1';
+const APP_VERSION = '1.11.2';
 const BUILD_DATE = '2026-09-18';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -619,7 +619,9 @@ const VIEWS = { resum: renderResum, inici: renderInici, inflacio: renderInflacio
 function go(v) {
   if (!VIEWS[v]) v = 'resum';
   view = v;
-  if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
+  // No deixem la pestanya a l'adreça: així, quan es torna a obrir l'app (o el navegador recupera la pàgina),
+  // sempre s'entra per "Comença aquí". Els enllaços amb #vista (dreceres, enllaços compartits) continuen funcionant.
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   ultimVist[grupDe(v).id] = v; lsSet('economia_ultim', ultimVist);
   amagaTerme();
   renderView();
