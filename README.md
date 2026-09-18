@@ -47,7 +47,7 @@ Economia/
 | 🏭 **Creixement** | Creixement del PIB, atur, riquesa per habitant, d'on surt el creixement (més hores o més productivitat), producció per hora, inversió i renda mediana |
 | 📍 **Fitxa de país** | Un resum en paraules i gràfics de qualsevol país o zona |
 | 🔍 **L'altra cara** | El que no surt als titulars: pisos vs sous, la "màquina de fer diners" dels bancs centrals, diners vs economia a la zona euro, la febre de l'or i per què la inflació oficial pot semblar baixa |
-| 🧳 **Immigració** | Quanta n'hi ha i com arriba, immigració irregular i expulsions que es fan efectives, feina i pobresa, remeses, què aporta i què costa, i el percentatge de població nascuda a fora a **qualsevol poble de Catalunya** |
+| 🧳 **Immigració** | Quanta n'hi ha i com arriba, immigració irregular i expulsions que es fan efectives, feina i pobresa, llars amb un sou o amb dos, ocupació per nacionalitat (Marroc, Colòmbia, Romania...), remeses, què aporta i què costa, i el percentatge de població nascuda a fora a **qualsevol poble de Catalunya** |
 | 👴 **Pensions** | Gent gran per cada 100 persones en edat de treballar (avui i projecció fins al 2070), despesa en pensions, fills per dona i què vol dir tot plegat |
 | 📊 **Comparar** | Taula de tots els països, ordenable, per a qualsevol any |
 | 📘 **Com funciona** | El cicle de l'economia explicat i un glossari |
@@ -80,6 +80,7 @@ Totes són oficials i gratuïtes, sense clau:
 | Tenidors estrangers de bons dels EUA | **Tresor dels EUA** — Treasury International Capital (TIC) |
 | Repo invers de la Fed | **Fed de Nova York** (`markets.newyorkfed.org`) |
 | Immigració a Europa (població nascuda a fora, migració neta, irregulars, ordres d'expulsió i retorns, asil, permisos, feina i pobresa) | **Eurostat** |
+| Afiliats i població per nacionalitat, Espanya (ocupació aproximada del Marroc, Colòmbia...) | **Seguretat Social** i **INE** |
 | Immigrants al món i remeses | **Banc Mundial** |
 | Població nascuda a l'estranger per municipi i comarca | **Idescat** (padró; l'última dada de cada poble es consulta en directe) |
 

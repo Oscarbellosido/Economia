@@ -38,6 +38,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ Eurostat         → immi.eu[ISO3|EU][clau][any]   (pestanya "Immigració"; Grècia és EL a Eurostat)
   │                     inclou ocupació per sexe (ocupHomes/ocupDones + Nat/NoUE) i llars sense feina (senseFeinaNat/NoUE)
   ├─ Banc Mundial     → immi.mon[ISO3].{estoc, remesesEnviades, remesesRebudes}
+  ├─ Seg. Social + INE→ immi.nac {mes, paisos[codi país SS|ESP|EXT].{nom, flag, pobH, pobD, afH, afD}}
+  │                     (ocupació aproximada per nacionalitat: afiliats ÷ població de 16 a 64 anys, Espanya)
   └─ Idescat (taules) → immi.cat {mun, com, anys, dades}: padró per lloc de naixement 2000-2022
         ↓
      dades.json  ──→  index.html: init() → D → go(vista) → renderXxx() → flushCharts()
@@ -152,6 +154,13 @@ han posat dades de delinqüència per nacionalitat: són fàcils de malinterpret
 No hi ha cap taula oficial de parelles amb un o dos sous per origen (ni a l'EPA de l'INE ni a Eurostat): la targeta
 "Llars amb un sou o amb dos?" s'hi acosta amb l'ocupació per sexe (`lfsa_ergacob`) i les llars amb intensitat laboral
 molt baixa (`ilc_lvhl16n`). La xifra exacta es podria calcular amb les microdades de l'EPA.
+Per a nacionalitats concretes (Marroc, Colòmbia...) `immi.nac` combina dues fonts del **mateix mes**:
+- Afiliats mitjans per país i sexe de la **Seguretat Social**. No té API: el script omple el formulari PxWeb
+  (`1m. Afiliados Total Sistema por sexo, tramo de edad y pais.px`) amb la galeta de sessió i llegeix la taula HTML.
+  Si canvien els noms dels camps, deixarà de funcionar i es conservaran les dades anteriors.
+- Població per nacionalitat, sexe i grups d'edat de l'**INE** (ECP, taula 56936; la de 15-19 anys compta 4/5).
+  Aquesta taula arriba fins a l'1 de gener del 2025; el mes de la Seguretat Social s'agafa igual que la data de població.
+- El text de la targeta ha de conservar els avisos: feina no declarada, nacionalitat ≠ lloc de naixement, aproximació.
 
 ## 9. Textos d'actualitat (revisar-los!)
 

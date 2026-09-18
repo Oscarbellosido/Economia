@@ -555,6 +555,94 @@ async function main() {
     console.log('Eurostat ok', Object.keys(eu).length, 'països');
   } catch (e) { console.warn('Eurostat ha fallat:', e.message); }
 
+  // ── Ocupació per nacionalitat: afiliats a la Seguretat Social ÷ població de 16 a 64 anys (INE) ──
+  // Cap enquesta oficial publica la taxa d'ocupació d'un país d'origen concret (el Marroc, Colòmbia...).
+  // L'aproximem amb dues fonts oficials del MATEIX mes: afiliats mitjans (Seguretat Social, PxWeb) i
+  // població per nacionalitat, sexe i edat (INE, Estadística Continua de Població, taula 56936).
+  try {
+    // [nom a l'INE, codi de país a la Seguretat Social, nom en català, bandera]
+    const NACIONS = [
+      ['Española', 724, 'Espanyola', '🇪🇸'], ['Marruecos', 504, 'Marroc', '🇲🇦'], ['Rumanía', 642, 'Romania', '🇷🇴'],
+      ['Colombia', 170, 'Colòmbia', '🇨🇴'], ['Venezuela', 862, 'Veneçuela', '🇻🇪'], ['Italia', 380, 'Itàlia', '🇮🇹'],
+      ['China', 156, 'Xina', '🇨🇳'], ['Reino Unido', 826, 'Regne Unit', '🇬🇧'], ['Ucrania', 804, 'Ucraïna', '🇺🇦'],
+      ['Perú', 604, 'Perú', '🇵🇪'], ['Honduras', 340, 'Hondures', '🇭🇳'], ['Ecuador', 218, 'Equador', '🇪🇨'],
+      ['Argentina', 32, 'Argentina', '🇦🇷'], ['Bulgaria', 100, 'Bulgària', '🇧🇬'], ['Portugal', 620, 'Portugal', '🇵🇹'],
+      ['Paraguay', 600, 'Paraguai', '🇵🇾'], ['Bolivia', 68, 'Bolívia', '🇧🇴'], ['Brasil', 76, 'Brasil', '🇧🇷'],
+      ['Cuba', 192, 'Cuba', '🇨🇺'], ['Nicaragua', 558, 'Nicaragua', '🇳🇮'], ['República Dominicana', 214, 'República Dominicana', '🇩🇴'],
+      ['Argelia', 12, 'Algèria', '🇩🇿'], ['Senegal', 686, 'Senegal', '🇸🇳'], ['Pakistán', 586, 'Pakistan', '🇵🇰'],
+      ['India', 356, 'Índia', '🇮🇳'], ['Filipinas', 608, 'Filipines', '🇵🇭'], ['Francia', 250, 'França', '🇫🇷'], ['Alemania', 276, 'Alemanya', '🇩🇪'],
+    ];
+    // 1 · població de 16 a 64 anys per nacionalitat i sexe (grups de 5 anys: el de 15-19 compta 4/5)
+    const ine = await get('https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/56936?nult=1');
+    const EDATS = { 'De 15 a 19 años': 0.8, 'De 20 a 24 años': 1, 'De 25 a 29 años': 1, 'De 30 a 34 años': 1, 'De 35 a 39 años': 1, 'De 40 a 44 años': 1,
+      'De 45 a 49 años': 1, 'De 50 a 54 años': 1, 'De 55 a 59 años': 1, 'De 60 a 64 años': 1 };
+    const pob = {}; let data = null;
+    for (const s of ine) {
+      const [ambit, nac, edat, sexe] = s.Nombre.split('. ').map(x => x.trim());
+      const d = s.Data?.[0];
+      if (ambit !== 'Total Nacional' || !(edat in EDATS) || sexe === 'Total' || !d) continue;
+      const k = sexe === 'Hombres' ? 'H' : 'D';
+      (pob[nac] ||= { H: 0, D: 0 })[k] += d.Valor * EDATS[edat];
+      data ||= new Date(d.Fecha + 12 * 3600e3);   // l'INE dona la data a mitjanit hora espanyola
+    }
+    if (!data || !pob.Marruecos) throw new Error('INE: sense població per nacionalitat');
+    const mesSS = `${data.getUTCFullYear()}${String(data.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    // 2 · afiliats mitjans d'aquell mes per país i sexe (formulari PxWeb de la Seguretat Social)
+    const URL_SS = 'https://w6.seg-social.es/PXWeb/pxweb/es/Afiliados%20en%20alta%20laboral/Afiliados%20en%20alta%20laboral__Afiliados%20Medios%20Extranjeros/1m.%20Afiliados%20Total%20Sistema%20por%20sexo,%20tramo%20de%20edad%20y%20pais.px/';
+    const dec = t => t.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
+    const r0 = await fetch(URL_SS, { headers: UA, signal: AbortSignal.timeout(60000) });
+    const cookie = (r0.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
+    const html = await r0.text();
+    const form = new URLSearchParams();
+    for (const m of html.matchAll(/<input[^>]*type="hidden"[^>]*>/g)) {
+      const name = m[0].match(/name="([^"]+)"/)?.[1];
+      if (name) form.append(name, dec(m[0].match(/value="([^"]*)"/)?.[1] ?? ''));
+    }
+    const sels = [...html.matchAll(/<select[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)]
+      .map(m => ({ name: m[1], opts: [...m[2].matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)</g)].map(o => ({ v: dec(o[1]), t: dec(o[2]).trim() })) }));
+    const [sMes, sPais, sSexe, sEdat] = sels;
+    const optMes = sMes?.opts.find(o => o.t === mesSS);
+    if (!optMes) throw new Error('Seguretat Social: no hi ha el mes ' + mesSS);
+    form.append(sMes.name, optMes.v);
+    const codis = new Set(NACIONS.map(n => n[1]));
+    for (const o of sPais.opts) if (o.t === 'TOTAL' || codis.has(parseInt(o.t))) form.append(sPais.name, o.v);
+    for (const o of sSexe.opts) if (o.t === 'Mujer' || o.t === 'Varón') form.append(sSexe.name, o.v);
+    form.append(sEdat.name, sEdat.opts.find(o => o.t === 'TOTAL EDAD').v);
+    form.append('ctl00$ContentPlaceHolderMain$VariableSelector1$VariableSelector1$ButtonViewTable', 'Continuar');
+    const r1 = await fetch(URL_SS, { method: 'POST', headers: { ...UA, cookie, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString(), redirect: 'manual', signal: AbortSignal.timeout(60000) });
+    const loc = r1.headers.get('location');
+    if (!loc) throw new Error('Seguretat Social: el formulari no ha respost (HTTP ' + r1.status + ')');
+    const taula = await (await fetch(new URL(loc, URL_SS), { headers: { ...UA, cookie }, signal: AbortSignal.timeout(60000) })).text();
+    const cel = [...taula.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map(m => dec(m[1].replace(/<[^>]+>/g, '')).trim()).filter(Boolean);
+    const iDona = cel.indexOf('Mujer'), iHome = cel.indexOf('Varón');
+    if (iDona < 0 || iHome < 0) throw new Error('Seguretat Social: taula inesperada');
+    const num = t => +t.replace(/\./g, '').replace(',', '.');
+    const af = {};
+    for (let i = 0; i < cel.length - 2; i++) {
+      const codi = cel[i] === 'TOTAL' ? 'TOTAL' : /^\d+\.\s/.test(cel[i]) ? parseInt(cel[i]) : null;
+      if (codi == null || isNaN(num(cel[i + 1])) || isNaN(num(cel[i + 2]))) continue;
+      const [a, b] = [num(cel[i + 1]), num(cel[i + 2])];
+      af[codi] = iDona < iHome ? { D: a, H: b } : { D: b, H: a };
+    }
+
+    // 3 · taxa aproximada = afiliats ÷ població de 16 a 64 anys
+    const nac = {};
+    for (const [ine_, codi, nom, flag] of NACIONS) {
+      const p = pob[ine_], a = af[codi];
+      if (!p || !a || p.H < 5000 || p.D < 5000) continue;   // col·lectius massa petits: soroll
+      nac[codi === 724 ? 'ESP' : String(codi)] = { nom, flag, pobH: Math.round(p.H), pobD: Math.round(p.D), afH: Math.round(a.H), afD: Math.round(a.D) };
+    }
+    // tots els estrangers junts: afiliats totals menys els espanyols; població "Extranjera"
+    if (af.TOTAL && af[724] && pob.Extranjera)
+      nac.EXT = { nom: 'Tots els estrangers', flag: '🌍', pobH: Math.round(pob.Extranjera.H), pobD: Math.round(pob.Extranjera.D),
+        afH: Math.round(af.TOTAL.H - af[724].H), afD: Math.round(af.TOTAL.D - af[724].D) };
+    if (!nac.ESP || !nac['504']) throw new Error('falten dades d\'Espanya o del Marroc');
+    out.immi.nac = { mes: `${mesSS.slice(0, 4)}-${mesSS.slice(4)}`, paisos: nac };
+    out.fonts.immiNac = { font: 'Seguretat Social (afiliats mitjans per país i sexe) · INE (Estadística Continua de Població, per nacionalitat, sexe i edat)', unitat: 'persones' };
+    console.log('Ocupació per nacionalitat ok', Object.keys(nac).length, 'nacionalitats,', mesSS);
+  } catch (e) { console.warn('Ocupació per nacionalitat ha fallat:', e.message); }
+
   // ── Banc Mundial: immigrants al món i remeses que s'envien als països d'origen ──
   try {
     const mon = {};
@@ -617,7 +705,7 @@ async function main() {
       if (!out.eua[c] && vell.eua?.[c]) { out.eua[c] = vell.eua[c]; if (f) out.fonts[f] = vell.fonts[f]; }
     if (!out.altra.orMensual && vell.altra?.orMensual) out.altra.orMensual = vell.altra.orMensual;
     for (const [c, f] of [['bons', 'bons'], ['impostos', 'impostos']]) if (!out.fiscal[c] && vell.fiscal?.[c]) { out.fiscal[c] = vell.fiscal[c]; out.fonts[f] = vell.fonts[f]; }
-    for (const [c, f] of [['eu', 'immiEU'], ['mon', 'immiMon'], ['cat', 'immiCat']]) if (!out.immi[c] && vell.immi?.[c]) { out.immi[c] = vell.immi[c]; out.fonts[f] = vell.fonts[f]; }
+    for (const [c, f] of [['eu', 'immiEU'], ['mon', 'immiMon'], ['cat', 'immiCat'], ['nac', 'immiNac']]) if (!out.immi[c] && vell.immi?.[c]) { out.immi[c] = vell.immi[c]; out.fonts[f] = vell.fonts[f]; }
   }
   if (!out.paisos.USA.s.pib) throw new Error('Les dades del FMI han arribat buides; no es desa res.');
 

@@ -384,7 +384,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.11.0';
 const BUILD_DATE = '2026-09-18';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -1795,6 +1795,41 @@ function renderAltra() {
   </div>`;
 }
 
+// Ocupació per nacionalitat (Espanya): afiliats a la Seguretat Social ÷ població de 16 a 64 anys
+function nacionalitatsHTML() {
+  const N = D.immi?.nac; if (!N?.paisos) return '';
+  const taxa = (p, k) => p['pob' + k] ? p['af' + k] / p['pob' + k] * 100 : null;
+  const rows = Object.entries(N.paisos).map(([c, p]) => ({ c, name: `${p.flag} ${p.nom}`, a: taxa(p, 'D'), b: taxa(p, 'H'), pob: p.pobH + p.pobD }))
+    .filter(r => r.a != null && r.b != null).sort((x, y) => y.a - x.a);
+  const E = N.paisos.ESP, M = N.paisos['504'], X = N.paisos.EXT;
+  const [any, mes] = N.mes.split('-');
+  const quan = `${['gener', 'febrer', 'març', 'abril', 'maig', 'juny', 'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre'][+mes - 1]} del ${any}`;
+  return `<div class="card">
+    <h3>🌍 Per nacionalitat: quants treballen amb contracte?</h3>
+    <p class="sub">Les enquestes oficials no donen la feina per país d'origen concret, però es pot aproximar: persones <b>afiliades a la Seguretat Social</b>
+    dividides per la <b>població de 16 a 64 anys</b> de cada nacionalitat. Espanya, ${quan}.</p>
+    ${E && M ? `<div class="callout">
+      <b>Marroc:</b> hi ha afiliats el <b>${pct(taxa(M, 'H'), 0)} dels homes</b> i el <b>${pct(taxa(M, 'D'), 0)} de les dones</b> de 16 a 64 anys.
+      Entre els espanyols, el ${pct(taxa(E, 'H'), 0)} i el ${pct(taxa(E, 'D'), 0)}${X ? `; entre tots els estrangers, el ${pct(taxa(X, 'H'), 0)} i el ${pct(taxa(X, 'D'), 0)}` : ''}.
+      La diferència gran és a les dones, i és on més varia d'un país a un altre: les romaneses o les filipines treballen gairebé com les espanyoles.
+    </div>` : ''}
+    ${pairBarsHTML(rows, { la: 'Dones', lb: 'Homes', fmt: v => pct(v, 0), me: 'ESP' })}
+    <p class="sub" style="margin-top:10px"><b>Com llegir-ho sense enganyar-se:</b></p>
+    <ul class="sub" style="margin:4px 0 0;padding-left:18px">
+      <li><b>Només hi surt la feina declarada.</b> Qui treballa sense contracte és al padró però no a la Seguretat Social: la feina real és més alta, sobretot
+      en col·lectius amb molta gent arribada fa poc o sense papers, i en les feines de cures i neteja a cases. Moltes persones que han demanat asil encara no poden treballar legalment.</li>
+      <li><b>Compta per nacionalitat, no per lloc de naixement.</b> Qui ja s'ha fet espanyol compta com a espanyol, i sol ser qui fa més anys que hi viu i està més integrat.
+      Per això els col·lectius d'arribada més antiga surten pitjor del que són.</li>
+      <li><b>És una aproximació.</b> Una persona amb dues feines pot comptar dues vegades i els afiliats de més de 64 anys també hi són. S'ha triat el gener,
+      fora de les campanyes agrícoles, perquè els temporers contractats a origen no inflin les xifres.</li>
+      <li>Les causes de les diferències entre dones són diverses i els estudis en citen moltes: formació i idioma, nombre de fills petits, rols familiars
+      més tradicionals en alguns col·lectius i feina informal. Una xifra no explica per si sola el perquè.</li>
+    </ul>
+    <p class="muted">Font: Seguretat Social (afiliats mitjans per país i sexe) i INE (població per nacionalitat, sexe i edat). És el mes més recent en què hi ha totes dues dades.
+    Només nacionalitats amb més de 5.000 homes i 5.000 dones de 16 a 64 anys.</p>
+  </div>`;
+}
+
 /* ── 🧳 Immigració ──────────────────────────────────────────────────────────── */
 // Tema delicat: dades oficials, beneficis i costos junts, i sempre dient d'on surt cada xifra.
 const IM_DEFAULT = ['ESP', 'DEU', 'FRA', 'ITA', 'EU'];
@@ -2017,6 +2052,7 @@ function renderImmigracio() {
     amb les microdades de l'EPA de l'INE, però no es publica.</p>
   </div>`;
   })()}
+  ${p === 'ESP' ? nacionalitatsHTML() : ''}
 
   <div class="card">
     <h3>💸 5. Diners que s'envien als països d'origen</h3>
