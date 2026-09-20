@@ -37,7 +37,7 @@ Economia/
 |---|---|
 | 🧭 **Resum** (pantalla d'entrada) | Què ens espera a Espanya, a les grans economies i al món: un semàfor amb les conclusions, la lectura oficial i la crítica, tres escenaris i què convé vigilar. Cada punt porta a la pestanya amb el detall |
 | 🏠 **El món en xifres** | Les xifres del món d'aquest any, un avís d'actualitat (la crisi d'Ormuz), les 15 economies més grans i tres idees clau |
-| 🛒 **Inflació** | Inflació anual per país des del 2000, quant han pujat els preus des del 2020 i una calculadora de "què valen els teus diners" |
+| 🛒 **Inflació** | Inflació anual per país (des del 1980, el 2000 o el 2015), com es nota a la butxaca en euros, el preu del petroli i del gas mes a mes, i una calculadora de "què valen els teus diners" |
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
 | 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal i el sou brut i net descomptant la inflació |
 | 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses), dèficit i **quant costa**: bons a 10 i 30 anys, corba de tipus, prima de risc i interessos pagats |

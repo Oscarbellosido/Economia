@@ -31,6 +31,7 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ Tresor TIC       → eua.tenidors[país|TOTAL|OFICIAL]["AAAA-MM"]  (mfhhis01.txt històric + slt_table5.txt recent)
   ├─ Fed NY           → eua.rrp["AAAA-MM"] (mitjana), eua.rrpUltim, eua.rrpMax
   ├─ FMI IRFCL mensual→ altra.orMensual[ISO3]["AAAA-MM"] (compres de l'any en curs)
+  ├─ FMI PCPS        → energia.brent["AAAA-MM"] i energia.gasEU["AAAA-MM"] (petroli i gas, pestanya Inflació)
   ├─ Eurostat demo    → demo.eu[ISO3|EU].{depVell, depVellProj, pensions, fecunditat, creixPob, llar, llicencies}
   ├─ Eurostat prod    → prod.eu[ISO3|EU].{pibReal, pibNom, pibPPA, pob, ocupats, hores, inversio, rendaMed, rendaMitj}
   │                     (pestanya Creixement: d'on surt el creixement, productivitat per hora, inversió i renda mediana)
@@ -51,6 +52,10 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   l'EMEX de l'Idescat (CORS obert). La CSP té `connect-src 'self' https://api.idescat.cat`. L'FMI no permet
   CORS, per això les dades es preparen al servidor i no al navegador.
 - `Y` = any de `D.generat`. Els anys `>= Y` es tracten com a **previsió** (zona ombrejada).
+- Totes les sèries de l'FMI comencen el `ANY0` (2000) **menys la inflació**, que es desa des del **1980** (el
+  començament de l'FMI) perquè al gràfic d'Inflació es pugui triar 1980 i veure els xocs dels setanta i vuitanta.
+- El preu del petroli (Brent) i del gas europeu surten del PCPS de l'FMI per SDMX; la clau és
+  `país.indicador.transformació.freqüència` (`.POILBRE+PNGASEU.USD.M`), i el CSV porta moltíssimes columnes de metadades.
 - Afegir un país: una línia a `PAISOS` del script (nom català, bandera, codi BIS, és OCDE).
   Afegir un indicador FMI: una línia a `FMI`. Torna a executar el script.
 - L'OCDE falla amb HTTP 500 si es demana una llista de països: es baixa el conjunt `all`.

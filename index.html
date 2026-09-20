@@ -384,8 +384,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.11.2';
-const BUILD_DATE = '2026-09-18';
+const APP_VERSION = '1.12.0';
+const BUILD_DATE = '2026-09-20';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -1036,10 +1036,52 @@ function butxacaHTML() {
   </div>`;
 }
 
+// Preu de l'energia: d'aquí venen la majoria de xocs d'inflació (FMI, mitjana mensual)
+function energiaHTML() {
+  const E = D.energia; if (!E?.brent) return '';
+  const mesos = Object.keys(E.brent).sort();
+  const ara = mesos.at(-1), val = E.brent[ara];
+  const anyPrev = ara.slice(0, 4) - 1 + ara.slice(4);        // el mateix mes de l'any passat
+  const abans = E.brent[anyPrev];
+  const canvi = abans ? (val / abans - 1) * 100 : null;
+  const gas = E.gasEU || {};
+  const gAra = Object.keys(gas).sort().at(-1), gVal = gas[gAra], gPrev = gas[gAra ? gAra.slice(0, 4) - 1 + gAra.slice(4) : ''];
+  const serie = o => Object.entries(o).map(([k, v]) => [monthX(k), v]).sort((a, b) => a[0] - b[0]);
+  return `
+  <div class="card">
+    <h3>🛢️ El preu de l'energia: d'on surten els sotracs</h3>
+    <p class="sub">Gairebé totes les pujades sobtades de preus dels últims anys han començat aquí: el petroli i el gas entren a tot
+    (transport, fàbriques, llum, adobs i, al final, la compra). Mitjana de cada mes, en dòlars.</p>
+    <div class="callout">
+      <b>Ara mateix (${monthLabel(monthX(ara))}):</b> el barril de Brent va a <b class="num">${nf(val, 0)} $</b>${canvi != null ? `, ${Math.abs(canvi) < 3 ? 'com' : canvi > 0 ? `un ${pct(canvi, 0)} més` : `un ${pct(-canvi, 0)} menys`} que fa un any` : ''}.
+      ${gVal ? `El gas a Europa, a <b class="num">${nf(gVal, 1)} $</b> per milió de BTU${gPrev ? `, ${Math.abs(gVal / gPrev - 1) < 0.03 ? 'com' : gVal > gPrev ? `un ${pct((gVal / gPrev - 1) * 100, 0)} més` : `un ${pct((1 - gVal / gPrev) * 100, 0)} menys`} que fa un any` : ''}.` : ''}
+    </div>
+    <div class="grid g2">
+      <div>
+        <h3>Petroli Brent</h3>
+        <p class="sub">Dòlars per barril.</p>
+        ${chart('c-brent', el => lineChart(el, { title: 'Petroli Brent', months: true, zero: false, fmt: v => nf(v, 0) + ' $', tick: v => nf(v, 0),
+          series: [{ name: 'Brent', short: 'Brent', color: 'var(--s2)', pts: serie(E.brent) }] }))}
+      </div>
+      <div>
+        <h3>Gas natural a Europa</h3>
+        <p class="sub">Dòlars per milió de BTU (la unitat amb què es ven el gas).</p>
+        ${Object.keys(gas).length ? chart('c-gas', el => lineChart(el, { title: 'Gas a Europa', months: true, zero: false, fmt: v => nf(v, 1) + ' $', tick: v => nf(v, 0),
+          series: [{ name: 'Gas natural (Europa)', short: 'Gas', color: 'var(--s4)', pts: serie(gas) }] })) : '<p class="muted">Sense dades.</p>'}
+      </div>
+    </div>
+    <p class="sub" style="margin-top:8px">Als dos gràfics s'hi veuen els sotracs d'aquests anys: la pujada del 2021-2022 amb la reobertura i la guerra d'Ucraïna,
+    la baixada del 2023-2024 i el repunt del ${Y} amb la crisi de l'estret d'Ormuz. Quan l'energia puja, la inflació la segueix amb uns mesos de retard.</p>
+    <p class="muted">Font: FMI (Primary Commodity Price System). El gas europeu es va disparar el 2022 fins a nivells que fan petita qualsevol altra pujada del gràfic.</p>
+  </div>`;
+}
+
+let inflDes = lsGet('economia_infldes', 2000);
+function setInflDes(a) { inflDes = +a; lsSet('economia_infldes', inflDes); renderView(); }
 function renderInflacio() {
   const { a0, a1 } = anysCalc();
   const rows = [...sel].map(c => ({ c, name: label(c), v: cumInfl(c, a0, a1), color: col(c) })).filter(r => r.v != null).sort((a, b) => b.v - a.v);
-  const big = sel.some(c => pts(c, 'infl', 2000).some(p => p[1] > 30));
+  const big = sel.some(c => pts(c, 'infl', inflDes).some(p => p[1] > 30));
   const cr = cumInfl(calc.c, a0, a1);
   const yrs = anysInfl(calc.c);
   return `
@@ -1060,11 +1102,16 @@ function renderInflacio() {
   ${butxacaHTML()}
   <div class="card">
     <h3>Inflació anual per país</h3>
-    <p class="sub">Tria fins a ${MAX_SEL} països o zones per comparar.</p>
+    <p class="sub">Tria fins a ${MAX_SEL} països o zones per comparar, i des de quin any ho vols veure.</p>
+    <div class="calc" style="margin-bottom:8px">
+      <span>Des de</span>
+      <select onchange="setInflDes(this.value)" aria-label="Any d'inici del gràfic">${[1980, 2000, 2015].map(a => `<option ${a === inflDes ? 'selected' : ''}>${a}</option>`).join('')}</select>
+      ${inflDes === 1980 ? '<span class="muted">L\'FMI comença el 1980: s\'hi veu la cua de la inflació dels anys setanta i la baixada dels vuitanta.</span>' : ''}
+    </div>
     ${chipsHTML()}
     ${big ? '<p class="muted">⚠️ Algun país seleccionat té inflacions molt altes i estira l\'escala: treu-lo per veure millor la resta.</p>' : ''}
     ${chart('c-infl', el => lineChart(el, { title: 'Inflació anual', forecast: Y, fmt: v => pct(v), ref: { y: 2, label: 'objectiu 2 %' },
-      series: sel.map(c => ({ name: label(c), short: ent(c).nom, color: col(c), pts: pts(c, 'infl', 2000) })) }))}
+      series: sel.map(c => ({ name: label(c), short: ent(c).nom, color: col(c), pts: pts(c, 'infl', inflDes) })) }))}
   </div>
   <div class="grid g2">
     <div class="card">
@@ -1090,6 +1137,7 @@ function renderInflacio() {
       <p class="muted">Calculat amb la inflació mitjana anual de l'FMI. Els anys a partir del ${Y} són previsió.</p>
     </div>
   </div>
+  ${energiaHTML()}
   <div class="callout">⚠️ El ${Y} la crisi de l'estret d'Ormuz ha tornat a encarir el petroli. Les previsions de l'FMI que es veuen aquí encara no recullen el rebrot de l'estiu. <a href="#inici">Més informació →</a></div>
   <div class="card">
     <h3>Per què va pujar tant el 2022?</h3>

@@ -141,7 +141,9 @@ async function main() {
     for (const dest of [out.paisos, out.grups]) {
       for (const k of Object.keys(dest)) {
         const serie = {};
-        for (const [any, v] of Object.entries(vals[k] || {})) if (+any >= ANY0 && v != null) serie[any] = r1(v);
+        // la inflació es desa des del 1980 (el començament de l'FMI) per poder veure els xocs dels anys setanta i vuitanta
+        const desde = clau === 'infl' ? 1980 : ANY0;
+        for (const [any, v] of Object.entries(vals[k] || {})) if (+any >= desde && v != null) serie[any] = r1(v);
         if (Object.keys(serie).length) dest[k].s[clau] = serie;
       }
     }
@@ -441,6 +443,24 @@ async function main() {
     out.altra.orMensual = orM;
     console.log('FMI or mensual ok', Object.keys(orM).length, 'països');
   } catch (e) { console.warn('FMI or mensual ha fallat:', e.message); }
+
+  // ── FMI: preu del petroli i del gas (Primary Commodity Price System) ──
+  // D'aquí surten la majoria de xocs d'inflació. Clau SDMX: país.indicador.transformació.freqüència
+  try {
+    const text = await get(`https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS/.POILBRE+PNGASEU.USD.M?startPeriod=${ANY0}-01`, 'text', 3, 5000,
+      { Accept: 'application/vnd.sdmx.data+csv;version=1.0.0' });
+    const en = { brent: {}, gasEU: {} };
+    for (const f of csv(text)) {
+      if (f.OBS_VALUE === '') continue;
+      const mes = f.TIME_PERIOD.replace('-M', '-');
+      if (f.INDICATOR === 'POILBRE') en.brent[mes] = r1(+f.OBS_VALUE);
+      else if (f.INDICATOR === 'PNGASEU') en.gasEU[mes] = r1(+f.OBS_VALUE);
+    }
+    if (!Object.keys(en.brent).length) throw new Error('han arribat buides');
+    out.energia = en;
+    out.fonts.energia = { font: 'FMI · Primary Commodity Price System (Brent i gas natural a Europa)', unitat: 'Dòlars per barril · dòlars per milió de BTU, mitjana del mes' };
+    console.log('FMI energia ok', Object.keys(en.brent).length, 'mesos de petroli i', Object.keys(en.gasEU).length, 'de gas');
+  } catch (e) { console.warn('FMI energia ha fallat:', e.message); }
 
   // ════ Demografia, pensions i habitatge nou (Eurostat) ════
   out.demo = {};
@@ -752,6 +772,7 @@ async function main() {
     if (!out.fonts.borsaCap && vell.fonts.borsaCap) out.fonts.borsaCap = vell.fonts.borsaCap;
     for (const c of ['USA', 'JPN', 'EURO']) if (!out.llarg[c] && vell.llarg?.[c]) out.llarg[c] = vell.llarg[c];
     if (!out.demo.eu && vell.demo?.eu) { out.demo.eu = vell.demo.eu; out.fonts.demo = vell.fonts.demo; }
+    if (!out.energia && vell.energia) { out.energia = vell.energia; out.fonts.energia = vell.fonts.energia; }
     if (!out.prod.eu && vell.prod?.eu) { out.prod.eu = vell.prod.eu; out.fonts.prod = vell.fonts.prod; }
     for (const c of ['eer', 'eur']) if (!out.divises[c] && vell.divises?.[c]) { out.divises[c] = vell.divises[c]; out.fonts.divises = vell.fonts.divises; }
     for (const [c, f] of [['deute', 'euaDeute'], ['deuteUltim', null], ['tenidors', 'euaTic'], ['rrp', 'euaRrp'], ['rrpUltim', null], ['rrpMax', null]])
