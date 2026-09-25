@@ -203,4 +203,9 @@ d'aquests quatre canals. Ja no cal llegir les transcripcions amb l'extensió de 
   (subtítols automàtics), amb una línia per cada marca `[m:ss]` (~30 s). Hi ha tots els vídeos des del 16/9/2026 (els 7 primers sense marques
   de temps) i s'hi afegeix cada vídeo nou automàticament. **No baixis mai transcripcions de YouTube** (ni amb scripts ni amb
   l'extensió): la IP es bloqueja amb poques peticions i aturaria la tasca diària de TransVideo.
+- **A l'app**: la targeta "🎙️ Què diuen els divulgadors" del Resum llegeix `../TransVideo/dades/resums.json` **en directe**
+  (TransVideo és al mateix domini de GitHub Pages, per això passa la CSP `connect-src 'self'`). No es copia res a `dades.json`:
+  així s'actualitza cada dia sense tocar el nostre workflow mensual. En local només es veu si serveixes la carpeta `Programacio`
+  sencera (`npx serve -l 8767 .` i obrir `/Economia/`). Si la petició falla, la targeta no surt i prou. Claus: `dies`/`setmanes`
+  són la data en què es va generar el resum (no la de publicació dels vídeos) i `punts[]` pot ser text o `{text, t}`.
 - **Xarxa:** l'usuari té Proton VPN, però `node.exe` n'està exclòs (split tunneling), així que Node surt per la IP de casa.

@@ -384,8 +384,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.12.0';
-const BUILD_DATE = '2026-09-20';
+const APP_VERSION = '1.13.0';
+const BUILD_DATE = '2026-09-25';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -711,6 +711,74 @@ function actualitatHTML() {
   </div>`;
 }
 
+/* ── 🎙️ Què diuen els divulgadors ──────────────────────────────────────────── */
+// Resums diaris dels vídeos de Rallo, Marc Vidal, Pablo Gil i Bitcoin al día, fets per l'app TransVideo.
+// Es llegeixen en directe: TransVideo és al mateix domini que aquesta app, per això passa la CSP ('self').
+// Són OPINIONS. Les xifres que es poden contrastar, es contrasten amb les dades oficials de l'app.
+let DIV = null;
+const CANALS = { rallo: 'Juan Ramón Rallo', vidal: 'Marc Vidal', pablogil: 'Pablo Gil', btcdia: 'Bitcoin al día' };
+async function carregaDivulgadors() {
+  try {
+    const r = await fetch('../TransVideo/dades/resums.json', { cache: 'no-cache', signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j?.videos?.length) return;
+    DIV = j;
+    if (view === 'resum') renderView();
+  } catch { /* en local o sense connexió, la targeta no surt */ }
+}
+
+// "agost 2026" → "l'agost del 2026"
+const mesAmbArticle = k => { const m = MESOS[+k.slice(5, 7) - 1]; return (/^[aeiou]/i.test(m) ? "l'" : "el ") + m + " del " + k.slice(0, 4); };
+function divulgadorsHTML() {
+  if (!DIV) return '';
+  const S = (() => { const k = Object.keys(DIV.setmanes || {}).sort().at(-1); return k ? { ...DIV.setmanes[k], fi: k } : null; })();
+  const D1 = (() => { const k = Object.keys(DIV.dies || {}).sort().at(-1); return k ? { ...DIV.dies[k], dia: k } : null; })();
+  const vids = [...DIV.videos].sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).slice(0, 6);
+  const txt = p => typeof p === 'string' ? { text: p } : (p || {});
+  const li = arr => (arr || []).map(p => `<li>${esc(txt(p).text || '')}</li>`).join('');
+  const dataCurta = d => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' }); };
+  const hores = DIV.actualitzat ? (Date.now() - new Date(DIV.actualitzat)) / 36e5 : null;
+  const vell = hores != null && hores > 36;
+  // contrast amb la dada oficial: el preu del petroli és el que més citen
+  const E = D.energia?.brent, mesBrent = E ? Object.keys(E).sort().at(-1) : null;
+  return `
+  <div class="card">
+    <h3>🎙️ Què diuen els divulgadors</h3>
+    <p class="sub">Resum automàtic dels vídeos nous de <b>${Object.values(CANALS).join('</b>, <b>')}</b>, en català.
+    Són <b>opinions</b>, no dades oficials: serveixen per veure què es discuteix i contrastar-ho amb la resta de l'app.</p>
+    ${vell ? `<p class="muted">⚠️ L'últim resum és de fa més de ${nf(hores / 24, 0)} dies: pot ser que els vídeos més nous encara no hi siguin.</p>` : ''}
+    ${S ? `<div class="callout">
+      <b>La setmana del ${dataCurta(S.des_de)} al ${dataCurta(S.fi)}:</b> ${esc(S.titular || '')}
+      ${S.punts?.length ? `<ul class="sub" style="margin:8px 0 0;padding-left:18px">${li(S.punts.slice(0, 3))}</ul>` : ''}
+    </div>` : ''}
+    ${S && (S.coincideixen?.length || S.discrepen?.length || S.a_vigilar?.length) ? `<details class="petita">
+      <summary>🔍 En què coincideixen, en què discrepen i què vigilen</summary>
+      <div>
+        ${S.coincideixen?.length ? `<p class="sub"><b>Hi coincideixen</b></p><ul>${li(S.coincideixen)}</ul>` : ''}
+        ${S.discrepen?.length ? `<p class="sub"><b>Hi discrepen</b></p><ul>${li(S.discrepen)}</ul>` : ''}
+        ${S.a_vigilar?.length ? `<p class="sub"><b>Què vigilen</b></p><ul>${li(S.a_vigilar)}</ul>` : ''}
+      </div>
+    </details>` : ''}
+    ${D1?.titular ? `<p class="sub"><b>Últim dia resumit (${dataCurta(D1.dia)}):</b> ${esc(D1.titular)}</p>` : ''}
+    <p class="sub" style="margin-top:12px"><b>Últims vídeos</b> (obre'n un per veure'n el resum):</p>
+    ${vids.map(v => `<details class="petita">
+      <summary>${esc(CANALS[v.canal] || v.canal)} · ${esc(v.titol || '')} <span class="muted">${dataCurta(v.data)}</span></summary>
+      <div>
+        ${v.resum ? `<p class="sub">${esc(v.resum)}</p>` : ''}
+        ${v.punts?.length ? `<ul>${v.punts.map(p => { const x = txt(p); return `<li>${esc(x.text || '')}${x.t != null ? ` <a href="https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}&t=${Math.round(x.t)}s" target="_blank" rel="noopener">▶ min ${Math.floor(x.t / 60)}</a>` : ''}</li>`; }).join('')}</ul>` : ''}
+        ${v.conclusio ? `<p class="sub"><b>Conclusió:</b> ${esc(v.conclusio)}</p>` : ''}
+        <p class="muted"><a href="https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}" target="_blank" rel="noopener">Veure el vídeo sencer ▶</a></p>
+      </div>
+    </details>`).join('')}
+    ${mesBrent ? `<p class="sub" style="margin-top:12px"><b>Com contrastar-ho:</b> quan citen el preu del petroli donen el preu <b>del dia</b>, que es mou molt.
+    La dada oficial d'aquesta app és la <b>mitjana del mes</b>: ${nf(E[mesBrent], 0)} $ el barril ${mesAmbArticle(mesBrent)} (FMI).
+    No es contradiuen: mesuren coses diferents. <a href="#inflacio">Mira el gràfic →</a></p>` : ''}
+    <p class="muted">Resums fets automàticament per l'app TransVideo${DIV.actualitzat ? `, actualitzats el ${dataCurta(DIV.actualitzat)}` : ''}.
+    Poden contenir errors de transcripció i no diuen el que pensa aquesta app: les valoracions són dels autors dels vídeos.</p>
+  </div>`;
+}
+
 /* ── 🧭 Resum: què ens espera ───────────────────────────────────────────────── */
 // Conclusions calculades amb les dades (s'actualitzen soles) + context escrit a mà (porta data: RESUM_DATA).
 const RESUM_DATA = '16 de setembre de 2026';
@@ -904,7 +972,8 @@ function renderResum() {
       <p class="sub">• <b>Les previsions de l'FMI d'octubre</b>, que l'app agafarà sola al novembre.</p>
       <p class="sub">• <b>Si s'actualitzen els trams de l'IRPF</b> als pressupostos. <a href="#impostos">Impostos →</a></p>
     </div>
-  </div>`;
+  </div>
+  ${divulgadorsHTML()}`;
 }
 
 /* ── 🏠 Inici ───────────────────────────────────────────────────────────────── */
@@ -3132,6 +3201,7 @@ async function init() {
   $('#loading').remove();
   $('#fonts').innerHTML = fontsText();
   go(location.hash.slice(1) || 'resum');
+  carregaDivulgadors();   // resums dels divulgadors: es llegeixen a part i, quan arriben, es torna a pintar
   setTimeout(() => lsSet(LS_DATA, D), 1000);
 }
 init();
