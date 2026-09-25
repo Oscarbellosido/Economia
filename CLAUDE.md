@@ -187,3 +187,20 @@ La targeta "⚠️ Actualitat" d'Inici (`actualitatHTML()`, amb la data a `ACTUA
 (últim moviment del BCE, edició de l'FMI) surten de les dades, però el relat no. Quan l'usuari
 torni a treballar en el projecte, comprova si la situació ha canviat i actualitza el text i la
 data, o treu la targeta si ja no és actualitat. No hi posis res que no estigui contrastat.
+
+## Vídeos de YouTube (Rallo, Marc Vidal, Pablo Gil, Bitcoin al día): resums i transcripcions
+
+L'app **TransVideo** (`C:\Users\Carles\Documents\Programacio\TransVideo`) resumeix cada dia (~12:44) els vídeos nous
+d'aquests quatre canals. Ja no cal llegir les transcripcions amb l'extensió de Chrome: fes servir aquests fitxers.
+**Llegeix-los, però no els modifiquis** (els gestiona la tasca de TransVideo).
+
+- **Resums** (sempre disponibles): `TransVideo\dades\resums.json`, també a
+  https://oscarbellosido.github.io/TransVideo/dades/resums.json
+  `{ videos: [{ id, canal (rallo|pablogil|vidal|btcdia), titol, data, durada, resum, punts: [text | {text, t}], dades,
+  conclusio, temes }], dies: { data: { titular, punts } }, setmanes: { data: { des_de, titular, punts, coincideixen,
+  discrepen, a_vigilar } } }`. Vídeo en un minut concret: `https://www.youtube.com/watch?v=<id>&t=<t>s`.
+- **Transcripcions senceres** (només en aquest PC): `TransVideo\transcripcions\AAAA-MM-DD_canal_id.txt`, en castellà
+  (subtítols automàtics), amb una línia per cada marca `[m:ss]` (~30 s). Hi ha tots els vídeos des del 16/9/2026 (els 7 primers sense marques
+  de temps) i s'hi afegeix cada vídeo nou automàticament. **No baixis mai transcripcions de YouTube** (ni amb scripts ni amb
+  l'extensió): la IP es bloqueja amb poques peticions i aturaria la tasca diària de TransVideo.
+- **Xarxa:** l'usuari té Proton VPN, però `node.exe` n'està exclòs (split tunneling), així que Node surt per la IP de casa.
