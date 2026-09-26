@@ -39,7 +39,7 @@ Economia/
 | 🏠 **El món en xifres** | Les xifres del món d'aquest any, un avís d'actualitat (la crisi d'Ormuz), les 15 economies més grans i tres idees clau |
 | 🛒 **Inflació** | Inflació anual per país (des del 1980, el 2000 o el 2015), com es nota a la butxaca en euros, el preu del petroli i del gas mes a mes, i una calculadora de "què valen els teus diners" |
 | 💶 **Sous** | Si els sous han guanyat o perdut contra la inflació, evolució del sou real i qui cobra més |
-| 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal i el sou brut i net descomptant la inflació |
+| 🧾 **Impostos** | L'IRPF d'un sou mitjà any per any (la "progressivitat en fred"), on van els diners de la nòmina, la cunya fiscal, el sou brut i net descomptant la inflació, i què es paga segons on vius: IRPF, successions i patrimoni per comunitat autònoma, i impostos sobre el PIB, cunya i IVA per país |
 | 🏦 **Deute** | Deute públic de cada país, evolució, qui deu (estat, famílies, empreses), dèficit i **quant costa**: bons a 10 i 30 anys, corba de tipus, prima de risc i interessos pagats |
 | 💵 **Deute dels EUA** | El deute dels EUA (dada diària), qui té els seus bons a l'estranger (governs vs inversors privats), el "coixí" de liquiditat de la Fed que s'ha buidat i com s'encalla el sistema (2019, Londres 2022, Japó 2024) |
 | 📊 **Borsa** | Índex de la borsa de cada país, valor de la borsa en % del PIB ("indicador Buffett"), borsa vs economia i sous, i per què es parla de bombolla i de concentració en la IA |

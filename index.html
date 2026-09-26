@@ -271,6 +271,25 @@ abbr.terme { text-decoration: none; border-bottom: 1.5px dotted var(--accent); c
   border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: .86rem; box-shadow: 0 8px 24px var(--shadow); }
 #glostip p { margin: 4px 0 6px; color: var(--text-2); }
 
+/* Taules de fiscalitat (comunitats i països) */
+.tscroll { overflow-x: auto; margin-top: 10px; }
+table.tfisc { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 520px; }
+table.tfisc th, table.tfisc td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.tfisc th { color: var(--text-2); font-weight: 650; font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; }
+table.tfisc td.n, table.tfisc th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.tfisc tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
+table.tfisc tbody tr:hover td { background: var(--card-2); }
+@media (max-width: 620px) {
+  .tscroll { overflow-x: visible; }
+  table.tfisc { min-width: 0; }
+  table.tfisc thead { display: none; }
+  table.tfisc tr { display: block; border-bottom: 1px solid var(--border); padding: 8px 0; }
+  table.tfisc td { display: grid; grid-template-columns: 8.5em 1fr; gap: 8px; border: 0; padding: 3px 4px; }
+  table.tfisc td::before { content: attr(data-l); color: var(--muted); font-size: .76rem; }
+  table.tfisc td.n, table.tfisc td:first-child { text-align: left; }
+  table.tfisc td:first-child { font-weight: 650; }
+}
+
 /* Lletra petita (crítica de les xifres oficials) */
 details.petita { margin: 10px 0 0; border: 1px dashed var(--border); border-radius: 12px; background: var(--card-2); }
 details.petita > summary { list-style: none; cursor: pointer; padding: 9px 14px; font-size: .88rem; font-weight: 600; color: var(--text-2); }
@@ -384,8 +403,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.13.0';
-const BUILD_DATE = '2026-09-25';
+const APP_VERSION = '1.14.0';
+const BUILD_DATE = '2026-09-26';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -716,7 +735,18 @@ function actualitatHTML() {
 // Es llegeixen en directe: TransVideo és al mateix domini que aquesta app, per això passa la CSP ('self').
 // Són OPINIONS. Les xifres que es poden contrastar, es contrasten amb les dades oficials de l'app.
 let DIV = null;
-const CANALS = { rallo: 'Juan Ramón Rallo', vidal: 'Marc Vidal', pablogil: 'Pablo Gil', btcdia: 'Bitcoin al día' };
+const CANALS = { rallo: 'Juan Ramón Rallo', vidal: 'Marc Vidal', pablogil: 'Pablo Gil' };
+// TransVideo també resumeix "Bitcoin al día", però aquesta app no parla de criptomonedes:
+// se'n treuen els vídeos i els trossos de resum setmanal que en parlen.
+const FORA = /bitcoin al d[ií]a/i;
+const sensecripto = t => {
+  if (!t) return '';
+  const parts = String(t).split(/\s*;\s*/).filter(p => !FORA.test(p));
+  if (!parts.length) return '';
+  const net = parts.join('; ').trim();
+  // si només queda el títol del punt ("Borsa cara."), no val la pena ensenyar-ho
+  return net.replace(/\s*;\s*$/, '').split(' ').length < 6 ? '' : net;
+};
 async function carregaDivulgadors() {
   try {
     const r = await fetch('../TransVideo/dades/resums.json', { cache: 'no-cache', signal: AbortSignal.timeout(10000) });
@@ -734,9 +764,9 @@ function divulgadorsHTML() {
   if (!DIV) return '';
   const S = (() => { const k = Object.keys(DIV.setmanes || {}).sort().at(-1); return k ? { ...DIV.setmanes[k], fi: k } : null; })();
   const D1 = (() => { const k = Object.keys(DIV.dies || {}).sort().at(-1); return k ? { ...DIV.dies[k], dia: k } : null; })();
-  const vids = [...DIV.videos].sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).slice(0, 6);
+  const vids = DIV.videos.filter(v => CANALS[v.canal]).sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).slice(0, 6);
   const txt = p => typeof p === 'string' ? { text: p } : (p || {});
-  const li = arr => (arr || []).map(p => `<li>${esc(txt(p).text || '')}</li>`).join('');
+  const li = arr => (arr || []).map(p => sensecripto(txt(p).text)).filter(Boolean).map(t => `<li>${esc(t)}</li>`).join('');
   const dataCurta = d => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' }); };
   const hores = DIV.actualitzat ? (Date.now() - new Date(DIV.actualitzat)) / 36e5 : null;
   const vell = hores != null && hores > 36;
@@ -746,10 +776,11 @@ function divulgadorsHTML() {
   <div class="card">
     <h3>🎙️ Què diuen els divulgadors</h3>
     <p class="sub">Resum automàtic dels vídeos nous de <b>${Object.values(CANALS).join('</b>, <b>')}</b>, en català.
-    Són <b>opinions</b>, no dades oficials: serveixen per veure què es discuteix i contrastar-ho amb la resta de l'app.</p>
+    Són <b>opinions</b>, no dades oficials: serveixen per veure què es discuteix i contrastar-ho amb la resta de l'app.
+    Els resums es fan sobre més canals, però aquí només hi surt el que parla d'economia.</p>
     ${vell ? `<p class="muted">⚠️ L'últim resum és de fa més de ${nf(hores / 24, 0)} dies: pot ser que els vídeos més nous encara no hi siguin.</p>` : ''}
     ${S ? `<div class="callout">
-      <b>La setmana del ${dataCurta(S.des_de)} al ${dataCurta(S.fi)}:</b> ${esc(S.titular || '')}
+      <b>La setmana del ${dataCurta(S.des_de)} al ${dataCurta(S.fi)}:</b> ${esc(sensecripto(S.titular) || S.titular || '')}
       ${S.punts?.length ? `<ul class="sub" style="margin:8px 0 0;padding-left:18px">${li(S.punts.slice(0, 3))}</ul>` : ''}
     </div>` : ''}
     ${S && (S.coincideixen?.length || S.discrepen?.length || S.a_vigilar?.length) ? `<details class="petita">
@@ -2275,6 +2306,104 @@ function exempleFred() {
     </div>`;
 }
 
+/* ── 🗺️ Impostos per comunitat i per país ──────────────────────────────────── */
+// ⚠️ TEXT ESCRIT A MÀ amb normativa vigent: revisar cada any (data a FISCAL_DATA).
+// Les xifres de les comunitats surten de les escales autonòmiques de l'IRPF i de la normativa
+// de cada comunitat (recollides al "Panorama de la fiscalidad autonómica y foral" del REAF).
+const FISCAL_DATA = '26 de setembre del 2026';
+// [comunitat, IRPF marginal màxim (estatal + autonòmic), successions per a fills, patrimoni]
+const CCAA = [
+  ['Comunitat Valenciana', 53.9, '99 % bonificat', 'Sense bonificació; exempts els primers 1.000.000 €'],
+  ['Navarra', 52, 'Règim foral propi, tipus baixos per a fills', 'Règim foral propi'],
+  ['La Rioja', 51.5, '99 % bonificat', '100 % bonificat'],
+  ['Astúries', 50.5, 'Exempt fins a 300.000 €; després, tipus propis alts', 'Sense bonificació'],
+  ['Canàries', 50.5, '99,9 % bonificat', 'Sense bonificació'],
+  ['Aragó', 50, '65 % en herències petites (fins a 100.000 €)', 'Sense bonificació; exempts els primers 400.000 €'],
+  ['Catalunya', 50, 'Del 99 % al 20 % segons l\'herència (cònjuge, 99 %)', 'Sense bonificació; exempts els primers 500.000 €'],
+  ['Extremadura', 49.5, '100 % fins a 500.000 €; 90 % fins a 600.000 €', '100 % bonificat'],
+  ['Illes Balears', 49.3, '100 % bonificat', 'Sense bonificació; exempts els primers 3.000.000 €'],
+  ['Cantàbria', 49, '100 % bonificat', '100 % bonificat'],
+  ['País Basc', 49, 'Règim foral propi, tipus baixos per a fills', 'Règim foral propi'],
+  ['Andalusia', 47, '99 % bonificat i 1.000.000 € de reducció', '100 % bonificat'],
+  ['Castella-la Manxa', 47, '100 % fins a 300.000 €; 80 % per sobre', 'Sense bonificació'],
+  ['Galícia', 47, '99 % bonificat (amb 1.000.000 € de reducció)', '50 % bonificat'],
+  ['Regió de Múrcia', 47, '99 % bonificat', '100 % bonificat'],
+  ['Castella i Lleó', 46, '99 % bonificat', 'Sense bonificació'],
+  ['Madrid', 45, '99 % bonificat', '100 % bonificat'],
+];
+// IVA: tipus general. Europa comprovada amb la base de dades TEDB de la Comissió Europea.
+const IVA = { ESP: 21, FRA: 20, DEU: 19, ITA: 22, PRT: 23, NLD: 21, BEL: 21, AUT: 20, IRL: 23, GRC: 24, SWE: 25, POL: 23,
+  NOR: 25, CHE: 8.1, GBR: 20, JPN: 10, KOR: 10, CAN: 5, AUS: 10, MEX: 16, TUR: 20, CHN: 13, IND: 18, ZAF: 15, SAU: 15, USA: null };
+
+function fiscalCCAA() {
+  const rows = [...CCAA].sort((a, b) => b[1] - a[1]);
+  const max = rows[0][1], min = rows.at(-1)[1];
+  return `
+  <div class="card">
+    <h3>🗺️ El mateix sou, diferents impostos: les comunitats</h3>
+    <p class="sub">A Espanya, la meitat de l'IRPF la decideix el govern central i <b>l'altra meitat, cada comunitat</b>. A més, successions,
+    donacions i patrimoni estan cedits del tot: cada parlament decideix si els cobra o els perdona. Per això la diferència entre viure
+    a una banda o a l'altra pot ser de <b>${nf(max - min, 1)} punts</b> al tram més alt de l'IRPF (del ${pct(min, 0)} de Madrid al ${pct(max, 1)} de la Comunitat Valenciana).</p>
+    <div class="tscroll">
+      <table class="tfisc">
+        <thead><tr><th>Comunitat</th><th class="n">IRPF màxim</th><th>Successions (fills)</th><th>Patrimoni</th></tr></thead>
+        <tbody>${rows.map(([nom, irpf, suc, pat]) => `<tr class="${nom === 'Catalunya' ? 'me' : ''}">
+          <td data-l="Comunitat">${esc(nom)}</td><td class="n" data-l="IRPF màxim">${pct(irpf, 1)}</td>
+          <td data-l="Successions (fills)">${esc(suc)}</td><td data-l="Patrimoni">${esc(pat)}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:10px"><b>Compte amb la lectura fàcil:</b> el tipus màxim de l'IRPF només el paga qui guanya molt
+    (a partir de 300.000 € l'any). Amb un <b>sou mitjà</b>, la diferència entre comunitats acostuma a ser de desenes o de pocs centenars
+    d'euros l'any, perquè els trams baixos s'assemblen molt. On la diferència sí que és enorme és a <b>successions i patrimoni</b>:
+    la mateixa herència pot no pagar res en una comunitat i costar desenes de milers d'euros en una altra.</p>
+    ${petita(`<ul>
+      <li><b>Això és un resum, no un càlcul.</b> Cada impost té reduccions per edat, discapacitat, habitatge habitual o empresa familiar que canvien molt el resultat.</li>
+      <li><b>Navarra i el País Basc tenen règim foral:</b> recapten els seus propis impostos i no es poden comparar directament amb la resta.</li>
+      <li><b>Les bonificacions de patrimoni no sempre serveixen:</b> l'impost estatal sobre les grans fortunes cobra igualment a partir d'uns 3,7 milions d'euros.</li>
+      <li><b>Canvia cada any.</b> Aquestes xifres són del 2026, comprovades el ${FISCAL_DATA}: si has de decidir res, mira la normativa vigent de la teva comunitat.</li>
+    </ul>`, 'La lletra petita d\'aquesta taula')}
+    <p class="muted">Font: escales autonòmiques de l'IRPF i normativa de cada comunitat (recollides al Panorama de la fiscalitat autonòmica del Consell General d'Economistes).</p>
+  </div>`;
+}
+
+function fiscalPaisos() {
+  const T = IMP(), P = D.demo?.eu || {};
+  // cada país publica la pressió fiscal amb un retard diferent: s'agafa l'últim any de cadascun
+  const ultimP = c => { const a = Object.keys(P[c]?.pressio || {}).map(Number); return a.length ? Math.max(...a) : null; };
+  const aP = (() => { const a = countries().map(ultimP).filter(Boolean); return a.length ? Math.max(...a) : null; })();
+  const rows = countries().map(c => {
+    const aU = impLast(c), ap = ultimP(c);
+    return { c, nom: label(c), pressio: ap ? P[c].pressio[ap] : null, anyP: ap, cunya: aU ? impV(c, 'cunya', aU) : null, iva: IVA[c] };
+  }).filter(r => r.pressio != null || r.cunya != null || r.iva != null)
+    .sort((a, b) => (b.pressio ?? b.cunya ?? 0) - (a.pressio ?? a.cunya ?? 0));
+  const es = rows.find(r => r.c === 'ESP');
+  return `
+  <div class="card">
+    <h3>🌍 I comparat amb els altres països?</h3>
+    <p class="sub">Tres maneres de mirar-ho: <b>quants impostos es recapten</b> en total (sobre tot el que produeix el país),
+    <b>quant se'n va del sou</b> d'un treballador mitjà (comptant el que paga l'empresa) i el <b>tipus general de l'IVA</b>.</p>
+    <div class="tscroll">
+      <table class="tfisc">
+        <thead><tr><th>País</th><th class="n">Impostos sobre el PIB${aP ? ` (${aP})` : ''}</th><th class="n">Se'n va del sou mitjà</th><th class="n">IVA general</th></tr></thead>
+        <tbody>${rows.map(r => `<tr class="${r.c === 'ESP' ? 'me' : ''}">
+          <td data-l="País">${esc(r.nom)}</td>
+          <td class="n" data-l="Impostos sobre el PIB">${r.pressio != null ? pct(r.pressio, 1) + (r.anyP !== aP ? ' <span class="muted">(' + r.anyP + ')</span>' : '') : '–'}</td>
+          <td class="n" data-l="Se'n va del sou mitjà">${r.cunya != null ? pct(r.cunya, 1) : '–'}</td>
+          <td class="n" data-l="IVA general">${r.iva != null ? pct(r.iva, r.iva % 1 ? 1 : 0) : (r.c === 'USA' ? 'no en té' : '–')}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+    ${es?.pressio != null ? `<p class="sub" style="margin-top:10px"><b>Espanya</b> recapta ${pct(es.pressio, 1)} del PIB el ${es.anyP}${ultimP('EU') ? `, per sota de la mitjana de la UE (${pct(P.EU.pressio[ultimP('EU')], 1)})` : ''},
+    però del sou d'un treballador mitjà se'n va ${pct(es.cunya, 1)}: es recapta menys que els veïns i, tot i així, el sou en nota una bona part.
+    La diferència és que aquí hi ha <b>menys base</b> (més economia submergida, sous més baixos i més atur) i no pas tipus més suaus.</p>` : ''}
+    <p class="sub">Als <b>Estats Units</b> no hi ha IVA: cada estat i cada ciutat posen el seu impost sobre les vendes, que sol anar del 0 % a prop del 10 %.</p>
+    <p class="sub"><b>Successions</b>, país per país, va per barris: <b>Suècia, Noruega, Àustria, Portugal, Canadà i Austràlia</b> no en tenen;
+    el <b>Regne Unit</b> cobra el 40 % per sobre d'un mínim exempt; els <b>Estats Units</b> només el cobren a partir de patrimonis molt grans (milions);
+    <b>França i Alemanya</b> sí que en tenen, com Espanya, però sense les diferències internes que tenim aquí.</p>
+    <p class="muted">Fonts: Eurostat (impostos i cotitzacions sobre el PIB, només països europeus), OCDE Taxing Wages (el que se'n va del sou mitjà d'un treballador sense fills)
+    i, per a l'IVA, la base de dades TEDB de la Comissió Europea per als països europeus; la resta, tipus generals vigents el ${FISCAL_DATA}. El detall de successions és context, no una dada actualitzada sola.</p>
+  </div>`;
+}
+
 function renderImpostos() {
   const T = IMP();
   const paisos = countries().filter(c => T[c]?.irpf);
@@ -2392,7 +2521,9 @@ function renderImpostos() {
     Si no es fa, és una pujada d'impostos que no passa per cap votació. A Espanya, l'escala estatal no s'ha actualitzat amb la inflació dels últims anys;
     algunes comunitats sí que han ajustat la seva part.</p>
     <p class="muted">Font: OCDE, Taxing Wages. Treballador sense fills que cobra el 100 % del sou mitjà del país; altres situacions familiars o sous paguen percentatges diferents.</p>
-  </div>`;
+  </div>
+  ${fiscalCCAA()}
+  ${fiscalPaisos()}`;
 }
 
 /* ── 💵 Deute dels EUA i la "fontaneria" del sistema ────────────────────────── */

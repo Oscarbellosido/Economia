@@ -32,7 +32,8 @@ scripts/actualitza.js  (Node 18+, a mà o des de GitHub Actions cada mes)
   ├─ Fed NY           → eua.rrp["AAAA-MM"] (mitjana), eua.rrpUltim, eua.rrpMax
   ├─ FMI IRFCL mensual→ altra.orMensual[ISO3]["AAAA-MM"] (compres de l'any en curs)
   ├─ FMI PCPS        → energia.brent["AAAA-MM"] i energia.gasEU["AAAA-MM"] (petroli i gas, pestanya Inflació)
-  ├─ Eurostat demo    → demo.eu[ISO3|EU].{depVell, depVellProj, pensions, fecunditat, creixPob, llar, llicencies}
+  ├─ Eurostat demo    → demo.eu[ISO3|EU].{depVell, depVellProj, pensions, fecunditat, creixPob, llar, llicencies, pressio}
+  │                     (pressio = impostos i cotitzacions sobre el PIB, `gov_10a_taxag`; cada país té l'últim any diferent)
   ├─ Eurostat prod    → prod.eu[ISO3|EU].{pibReal, pibNom, pibPPA, pob, ocupats, hores, inversio, rendaMed, rendaMitj}
   │                     (pestanya Creixement: d'on surt el creixement, productivitat per hora, inversió i renda mediana)
   ├─ BIS EER + BCE    → divises.eer[moneda]["AAAA-MM"] (2020=100), divises.eur[moneda]["AAAA-MM"] (unitats per euro)
@@ -172,6 +173,19 @@ Per a nacionalitats concretes (Marroc, Colòmbia...) `immi.nac` combina dues fon
   La Seguretat Social no publica afiliats per lloc de naixement. La targeta té un selector entre les dues maneres
   (`economia_nacvista`); no són del mateix any i no s'han de restar.
 - El text de la targeta ha de conservar els avisos: feina no declarada, dates diferents, aproximació.
+
+## 8b. Impostos per comunitat i per país (text escrit a mà)
+
+A la pestanya Impostos, `fiscalCCAA()` i `fiscalPaisos()` comparen el que es paga segons on vius.
+
+- `CCAA` (IRPF marginal màxim, successions per a fills i patrimoni de cada comunitat) i `IVA` (tipus general per país)
+  són **constants escrites a mà**, amb la data a `FISCAL_DATA`. La normativa canvia cada any: revisa-les i actualitza la data.
+  L'IRPF màxim es va comprovar amb dues fonts independents (escala estatal 24,5 % + escala autonòmica); l'IVA europeu, amb la
+  base de dades TEDB de la Comissió Europea.
+- La pressió fiscal (impostos sobre el PIB) sí que s'actualitza sola: Eurostat `gov_10a_taxag`, dins de `demo.eu[país].pressio`.
+- La taula ha de continuar dient que **el tipus màxim només el paguen les rendes altes** i que amb un sou mitjà la diferència
+  entre comunitats és petita: sense això, la comparació enganya. Les diferències grosses són a successions i patrimoni.
+- A mòbil (≤620 px) les taules `.tfisc` es converteixen en fitxes amb l'ajuda de `data-l` a cada `<td>`.
 
 ## 9. Textos d'actualitat (revisar-los!)
 

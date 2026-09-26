@@ -478,6 +478,8 @@ async function main() {
     put(await E('demo_find', `indic_de=TOTFERRT&sinceTimePeriod=${ANY0}`), 'fecunditat');
     put(await E('demo_gind', `indic_de=GROW&sinceTimePeriod=${ANY0}`), 'creixPob');
     put(await E('ilc_lvph01', `unit=AVG&sinceTimePeriod=${ANY0}`), 'llar');
+    // pressió fiscal: impostos i cotitzacions socials sobre el PIB
+    put(await E('gov_10a_taxag', `unit=PC_GDP&sector=S13&na_item=D2_D5_D91_D61_M_D995&sinceTimePeriod=${ANY0}`), 'pressio');
     put(await E('sts_cobp_a', `indic_bt=BPRM_DW&unit=THS&s_adj=NSA&sinceTimePeriod=${ANY0}`, { cpa2_1: 'CPA_F41001_X_410014' }), 'llicencies', v => Math.round(v * 1000));
     out.demo.eu = demo;
     out.fonts.demo = { font: 'Eurostat · demografia, projeccions (EUROPOP2023), despesa en pensions i llicències d\'obra', unitat: '' };
