@@ -217,6 +217,9 @@ d'aquests quatre canals. Ja no cal llegir les transcripcions amb l'extensió de 
   (subtítols automàtics), amb una línia per cada marca `[m:ss]` (~30 s). Hi ha tots els vídeos des del 16/9/2026 (els 7 primers sense marques
   de temps) i s'hi afegeix cada vídeo nou automàticament. **No baixis mai transcripcions de YouTube** (ni amb scripts ni amb
   l'extensió): la IP es bloqueja amb poques peticions i aturaria la tasca diària de TransVideo.
+- **Bitcoin al día no hi surt**: l'app no parla de criptomonedes. Es filtren els seus vídeos (`CANALS`) i els trossos del resum
+  setmanal que el citen (`sensecripto`, que parteix els punts per ";"). El titular diari no s'hi pot filtrar perquè barreja canals en una
+  sola frase: per això no es mostra.
 - **A l'app**: la targeta "🎙️ Què diuen els divulgadors" del Resum llegeix `../TransVideo/dades/resums.json` **en directe**
   (TransVideo és al mateix domini de GitHub Pages, per això passa la CSP `connect-src 'self'`). No es copia res a `dades.json`:
   així s'actualitza cada dia sense tocar el nostre workflow mensual. En local només es veu si serveixes la carpeta `Programacio`

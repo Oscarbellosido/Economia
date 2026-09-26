@@ -403,7 +403,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.14.1';
 const BUILD_DATE = '2026-09-26';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -763,7 +763,6 @@ const mesAmbArticle = k => { const m = MESOS[+k.slice(5, 7) - 1]; return (/^[aei
 function divulgadorsHTML() {
   if (!DIV) return '';
   const S = (() => { const k = Object.keys(DIV.setmanes || {}).sort().at(-1); return k ? { ...DIV.setmanes[k], fi: k } : null; })();
-  const D1 = (() => { const k = Object.keys(DIV.dies || {}).sort().at(-1); return k ? { ...DIV.dies[k], dia: k } : null; })();
   const vids = DIV.videos.filter(v => CANALS[v.canal]).sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).slice(0, 6);
   const txt = p => typeof p === 'string' ? { text: p } : (p || {});
   const li = arr => (arr || []).map(p => sensecripto(txt(p).text)).filter(Boolean).map(t => `<li>${esc(t)}</li>`).join('');
@@ -791,7 +790,6 @@ function divulgadorsHTML() {
         ${S.a_vigilar?.length ? `<p class="sub"><b>Què vigilen</b></p><ul>${li(S.a_vigilar)}</ul>` : ''}
       </div>
     </details>` : ''}
-    ${D1?.titular ? `<p class="sub"><b>Últim dia resumit (${dataCurta(D1.dia)}):</b> ${esc(D1.titular)}</p>` : ''}
     <p class="sub" style="margin-top:12px"><b>Últims vídeos</b> (obre'n un per veure'n el resum):</p>
     ${vids.map(v => `<details class="petita">
       <summary>${esc(CANALS[v.canal] || v.canal)} · ${esc(v.titol || '')} <span class="muted">${dataCurta(v.data)}</span></summary>
