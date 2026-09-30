@@ -403,7 +403,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.14.3';
+const APP_VERSION = '1.14.4';
 const BUILD_DATE = '2026-09-30';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -930,6 +930,12 @@ function renderResum() {
     <p class="sub">Un resum de tot el que hi ha a l'app, en dos minuts. Hi ha el que diuen les <b>dades oficials</b> (FMI, OCDE, BCE, Eurostat…) i el que
     <b>no surt als titulars</b>. Toca qualsevol punt per veure'n el detall.</p>
     <p class="muted">Les xifres s'actualitzen soles cada mes. Els textos de context són de ${RESUM_DATA}. És una interpretació de les dades, no una predicció segura ni un consell d'inversió.</p>
+  </div>
+  <div class="card sempre" style="border-color:var(--warn)">
+    <h3>⚠️ Actualitat: la inflació d'Espanya puja</h3>
+    <p class="muted">Situació a ${ACTUALITAT_DATA}</p>
+    <p class="sub">Segons l'avanç de l'IPC de l'INE, la inflació del setembre és del <b>4,9 %</b> (4,3 % l'agost i 3,5 % el juliol), sobretot pels <b>carburants</b>,
+    amb la crisi de l'estret d'Ormuz. La subjacent és del 3,1 %. <a href="#inici">Més informació →</a></p>
   </div>
 
   <div class="card">
