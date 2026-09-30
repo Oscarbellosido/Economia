@@ -403,7 +403,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.14.2';
+const APP_VERSION = '1.14.3';
 const BUILD_DATE = '2026-09-30';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -711,7 +711,7 @@ function actualitatHTML() {
   const MES_EN = { January: 'gener', April: 'abril', July: 'juliol', October: 'octubre' };
   const weo = m ? `edició ${/^[ao]/i.test(MES_EN[m[1]] || m[1]) ? "d'" : 'de '}${MES_EN[m[1]] || m[1]} del ${m[2]}` : '';
   const bce = lastChange('XM');
-  return `<div class="card" style="border-color:var(--warn)">
+  return `<div class="card sempre" style="border-color:var(--warn)">
     <h3>⚠️ Actualitat: la crisi de l'estret d'Ormuz</h3>
     <p class="muted">Situació a ${ACTUALITAT_DATA}</p>
     <p>Per l'estret d'Ormuz, entre l'Iran i la península Aràbiga, hi passa prop d'<b>una cinquena part del petroli del món</b>.
