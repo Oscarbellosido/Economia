@@ -403,8 +403,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.14.1';
-const BUILD_DATE = '2026-09-26';
+const APP_VERSION = '1.14.2';
+const BUILD_DATE = '2026-09-30';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -704,7 +704,7 @@ function lastChange(b) {
 
 /* ── Actualitat ─────────────────────────────────────────────────────────────── */
 // Text escrit a mà: cal revisar-lo quan canviï la situació (porta la data a la vista).
-const ACTUALITAT_DATA = '16 de setembre de 2026';
+const ACTUALITAT_DATA = '30 de setembre de 2026';
 function actualitatHTML() {
   // "World Economic Outlook (April 2026)" → "edició d'abril del 2026"
   const m = (D.fonts?.infl?.font || '').match(/\((\w+) (\d{4})\)/);
@@ -724,6 +724,10 @@ function actualitatHTML() {
       <div class="step"><b>🛒 Més inflació</b>Tot el que es transporta s'encareix.</div><div class="arr">→</div>
       <div class="step"><b>📈 Tipus d'interès</b>${bce && bce.a > bce.de ? `El BCE els va apujar el ${monthLabel(monthX(bce.mes))}, fins al ${pct(bce.a, 2)}.` : 'Els bancs centrals deixen de baixar-los o els apugen.'}</div>
     </div>
+    <p class="sub" style="margin-top:8px">🇪🇸 <b>A Espanya ja es nota:</b> l'avanç de l'IPC de l'INE (29 de setembre) situa la inflació del setembre al <b>4,9 %</b>,
+    per sobre del 4,3 % de l'agost i del 3,5 % del juliol. La inflació subjacent (sense energia ni aliments frescos) és del 3,1 %. L'INE ho atribueix sobretot als
+    <b>carburants</b>, que pugen quan l'any passat baixaven. Alguns analistes, com Juan Ramón Rallo, hi afegeixen que part de la pujada ve d'haver retirat les rebaixes
+    d'impostos d'aquest any: és una opinió, no una xifra de l'INE. Aquest 4,9 % és una dada mensual de l'INE; les taules de l'app són anuals de l'FMI.</p>
     <p class="sub" style="margin-top:8px">📌 <b>Important:</b> les previsions de l'FMI d'aquesta app són de l'<b>${esc(weo || 'última edició')}</b>. Ja inclouen el primer
     cop de la crisi (l'FMI va rebaixar el creixement i va apujar la inflació mundial prevista), però <b>no el rebrot de l'estiu</b>.
     L'FMI en publica una revisió cada octubre; l'app l'agafarà sola a la següent actualització mensual.</p>
