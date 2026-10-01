@@ -161,6 +161,7 @@ details.glos p { margin: 6px 0 0; color: var(--text-2); }
 .avis { position: fixed; left: 12px; right: 12px; bottom: 12px; max-width: 520px; margin: 0 auto; z-index: 50; display: flex; gap: 10px; align-items: center;
   background: var(--card); color: var(--text); border: 1px solid var(--accent); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.2); }
 .avis span { flex: 1; font-size: .92rem; }
+.avis ul { margin: 4px 0 0; padding-left: 18px; }
 .avis button { border: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
 .callout { border-left: 3px solid var(--accent); background: var(--card-2); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 10px 0; }
 
@@ -407,7 +408,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.16.1';
 const BUILD_DATE = '2026-10-01';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -3369,18 +3370,31 @@ async function init() {
   avisNovetats();
 }
 
+// Registre de novetats: [versió, data, text]. Les més noves primer. Afegeix-hi una línia cada cop que pugis APP_VERSION
+// amb un canvi que l'usuari pugui notar (text curt i en català, sense tecnicismes).
+const NOVETATS = [
+  ['1.16.0', '2026-10-01', "Aquest avís: ara t'explica què ha canviat des de la teva última visita."],
+  ['1.15.0', '2026-10-01', "Inflació: gràfic nou amb la inflació d'Espanya mes a mes, comparada amb la zona euro (INE i Eurostat)."],
+  ['1.14.4', '2026-09-30', "Resum: targeta curta d'actualitat amb la pujada de la inflació a Espanya."],
+  ['1.14.2', '2026-09-30', "Actualitat: la inflació d'Espanya ha pujat al 4,9 % al setembre (avanç de l'INE)."],
+  ['1.14.0', '2026-09-26', "Impostos: comparació per comunitat autònoma i per país."],
+];
+const vNum = v => String(v).split('.').reduce((n, x) => n * 1000 + (+x || 0), 0);
+
 // Avís quan, des de l'última visita, hi ha dades noves (actualització mensual) o una versió nova de l'app.
 // La primera vegada no es mostra res: només es desa què s'ha vist.
 function avisNovetats() {
   const ara = { g: D.generat, v: APP_VERSION }, vist = lsGet('economia_vist', null);
   if (!vist) { lsSet('economia_vist', ara); return; }
-  const msg = [];
-  if (vist.g !== ara.g) msg.push('📊 Dades actualitzades el ' + esc(ara.g));
-  if (vist.v !== ara.v) msg.push('✨ Textos o funcions noves (versió ' + esc(ara.v) + ')');
-  if (!msg.length) return;
+  const nous = NOVETATS.filter(n => vNum(n[0]) > vNum(vist.v || '0')).slice(0, 4);
+  const items = [];
+  if (vist.g !== ara.g) items.push('📊 Dades actualitzades el ' + esc(ara.g) + '.');
+  for (const n of nous) items.push('✨ ' + esc(n[2]));
+  if (!items.length && vist.v !== ara.v) items.push("✨ Millores petites a l'app (versió " + esc(ara.v) + ").");
+  if (!items.length) { if (vist.v !== ara.v || vist.g !== ara.g) lsSet('economia_vist', ara); return; }
   const el = document.createElement('div');
   el.className = 'avis'; el.setAttribute('role', 'status');
-  el.innerHTML = '<span>' + msg.join(' · ') + '</span><button type="button">Entesos</button>';
+  el.innerHTML = '<span><b>Què hi ha de nou</b><ul>' + items.map(t => '<li>' + t + '</li>').join('') + '</ul></span><button type="button">Entesos</button>';
   el.querySelector('button').onclick = () => { lsSet('economia_vist', ara); el.remove(); };
   document.body.appendChild(el);
 }

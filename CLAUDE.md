@@ -140,7 +140,8 @@ Això va trencar la v1.6.0.
 ## 5. Ritual de versió
 
 Quan es toca `index.html` o `sw.js`: puja `APP_VERSION`, posa `BUILD_DATE` a avui i incrementa
-`CACHE` a `sw.js`. Missatges de commit **en català**, explicant el perquè.
+`CACHE` a `sw.js`. Afegeix també una línia a `NOVETATS` (a `index.html`, les més noves primer) si el canvi és visible per a l'usuari:
+l'avís "Què hi ha de nou" (`avisNovetats()`) la mostra als qui tornen a l'app (`economia_vist` a localStorage). Missatges de commit **en català**, explicant el perquè.
 
 ## 6. Idioma i to
 
