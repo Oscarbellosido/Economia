@@ -158,6 +158,10 @@ section.view.on { display: block; }
 details.glos { border-top: 1px solid var(--border); padding: 10px 0; }
 details.glos summary { cursor: pointer; font-weight: 600; }
 details.glos p { margin: 6px 0 0; color: var(--text-2); }
+.avis { position: fixed; left: 12px; right: 12px; bottom: 12px; max-width: 520px; margin: 0 auto; z-index: 50; display: flex; gap: 10px; align-items: center;
+  background: var(--card); color: var(--text); border: 1px solid var(--accent); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.2); }
+.avis span { flex: 1; font-size: .92rem; }
+.avis button { border: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
 .callout { border-left: 3px solid var(--accent); background: var(--card-2); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 10px 0; }
 
 /* ── Controls ───────────────────────────────────────────────────────────────── */
@@ -403,7 +407,7 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 const BUILD_DATE = '2026-10-01';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
@@ -3362,6 +3366,23 @@ async function init() {
   go(location.hash.slice(1) || 'resum');
   carregaDivulgadors();   // resums dels divulgadors: es llegeixen a part i, quan arriben, es torna a pintar
   setTimeout(() => lsSet(LS_DATA, D), 1000);
+  avisNovetats();
+}
+
+// Avís quan, des de l'última visita, hi ha dades noves (actualització mensual) o una versió nova de l'app.
+// La primera vegada no es mostra res: només es desa què s'ha vist.
+function avisNovetats() {
+  const ara = { g: D.generat, v: APP_VERSION }, vist = lsGet('economia_vist', null);
+  if (!vist) { lsSet('economia_vist', ara); return; }
+  const msg = [];
+  if (vist.g !== ara.g) msg.push('📊 Dades actualitzades el ' + esc(ara.g));
+  if (vist.v !== ara.v) msg.push('✨ Textos o funcions noves (versió ' + esc(ara.v) + ')');
+  if (!msg.length) return;
+  const el = document.createElement('div');
+  el.className = 'avis'; el.setAttribute('role', 'status');
+  el.innerHTML = '<span>' + msg.join(' · ') + '</span><button type="button">Entesos</button>';
+  el.querySelector('button').onclick = () => { lsSet('economia_vist', ara); el.remove(); };
+  document.body.appendChild(el);
 }
 init();
 
