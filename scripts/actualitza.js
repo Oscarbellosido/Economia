@@ -462,6 +462,25 @@ async function main() {
     console.log('FMI energia ok', Object.keys(en.brent).length, 'mesos de petroli i', Object.keys(en.gasEU).length, 'de gas');
   } catch (e) { console.warn('FMI energia ha fallat:', e.message); }
 
+  // ── Inflació mensual: IPC d'Espanya (INE, variació anual calculada de l'índex) i IPCH d'Espanya i de la zona euro (Eurostat) ──
+  // L'avanç de l'INE (finals de mes) no té API: surt a la targeta d'Actualitat, escrita a mà.
+  try {
+    const inflM = { ipc: {}, ipca: {}, ea: {} };
+    const ine = await get('https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC251852?nult=300');
+    const idx = {};
+    for (const d of ine.Data || []) if (d.Valor != null) idx[d.Anyo + '-' + String(d.FK_Periodo).padStart(2, '0')] = d.Valor;
+    for (const m of Object.keys(idx).sort()) {
+      const prev = idx[(m.slice(0, 4) - 1) + m.slice(4)];
+      if (prev && m >= ANY0 + '-01') inflM.ipc[m] = Math.round((idx[m] / prev - 1) * 1000) / 10;
+    }
+    const h = jsonstat(await get(`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_manr?freq=M&unit=RCH_A&coicop=CP00&geo=ES&geo=EA&sinceTimePeriod=${ANY0}-01`));
+    for (const r of h) (r.geo === 'ES' ? inflM.ipca : inflM.ea)[r.time] = r.value;
+    if (!Object.keys(inflM.ipc).length || !Object.keys(inflM.ea).length) throw new Error('han arribat buides');
+    out.inflMensual = inflM;
+    out.fonts.inflMensual = { font: 'INE (IPC) i Eurostat (IPCH, prc_hicp_manr)', unitat: "% de variació sobre el mateix mes de l'any anterior" };
+    console.log('Inflació mensual ok', Object.keys(inflM.ipc).at(-1), '(IPC)', Object.keys(inflM.ea).at(-1), '(zona euro)');
+  } catch (e) { console.warn('Inflació mensual ha fallat:', e.message); }
+
   // ════ Demografia, pensions i habitatge nou (Eurostat) ════
   out.demo = {};
   try {
@@ -774,6 +793,7 @@ async function main() {
     if (!out.fonts.borsaCap && vell.fonts.borsaCap) out.fonts.borsaCap = vell.fonts.borsaCap;
     for (const c of ['USA', 'JPN', 'EURO']) if (!out.llarg[c] && vell.llarg?.[c]) out.llarg[c] = vell.llarg[c];
     if (!out.demo.eu && vell.demo?.eu) { out.demo.eu = vell.demo.eu; out.fonts.demo = vell.fonts.demo; }
+    if (!out.inflMensual && vell.inflMensual) { out.inflMensual = vell.inflMensual; out.fonts.inflMensual = vell.fonts.inflMensual; }
     if (!out.energia && vell.energia) { out.energia = vell.energia; out.fonts.energia = vell.fonts.energia; }
     if (!out.prod.eu && vell.prod?.eu) { out.prod.eu = vell.prod.eu; out.fonts.prod = vell.fonts.prod; }
     for (const c of ['eer', 'eur']) if (!out.divises[c] && vell.divises?.[c]) { out.divises[c] = vell.divises[c]; out.fonts.divises = vell.fonts.divises; }

@@ -403,8 +403,8 @@ footer { border-top: 1px solid var(--border); padding: 20px 0 40px; color: var(-
 
 <script>
 /* ── Configuració ───────────────────────────────────────────────────────────── */
-const APP_VERSION = '1.14.4';
-const BUILD_DATE = '2026-09-30';
+const APP_VERSION = '1.15.0';
+const BUILD_DATE = '2026-10-01';
 const LS_THEME = 'economia_theme';
 const LS_SEL = 'economia_sel';
 const LS_BANKS = 'economia_banks';
@@ -1144,6 +1144,25 @@ function butxacaHTML() {
   </div>`;
 }
 
+// Inflació mes a mes d'Espanya i de la zona euro (INE i Eurostat; s'actualitza sola)
+function inflMensualHTML() {
+  const M = D.inflMensual; if (!M?.ipc || !M?.ea) return '';
+  const mes = Object.keys(M.ipc).sort().at(-1), mesEA = Object.keys(M.ea).sort().at(-1);
+  const serie = (o, des) => Object.entries(o).filter(([k]) => k >= des).map(([k, v]) => [monthX(k), v]).sort((a, b) => a[0] - b[0]);
+  const es = M.ipc[mes], ea = M.ea[mesEA];
+  return `
+  <div class="card">
+    <h3>🇪🇸 La inflació d'Espanya, mes a mes</h3>
+    <p class="sub">Quant pugen els preus respecte del mateix mes de l'any passat. Aquí es veu el que les xifres anuals de l'FMI no ensenyen: com puja o baixa mes a mes.</p>
+    <div class="callout"><b>Últim mes publicat (${monthLabel(monthX(mes))}):</b> l'IPC d'Espanya és del <b class="num">${pct(es)}</b>${mesEA === mes ? ` i el de la zona euro, del <b class="num">${pct(ea)}</b>` : ''}.
+    Les xifres definitives surten a mitjans del mes següent; l'<i>avanç</i> de l'INE (a finals de mes) pot ser més recent: mira la targeta d'<a href="#inici">Actualitat</a>.</div>
+    ${chart('c-infl-mensual', el => lineChart(el, { title: 'Inflació mensual', months: true, zero: true, fmt: v => pct(v), tick: v => nf(v, 0) + ' %',
+      series: [{ name: 'Espanya (IPC, INE)', short: 'Espanya', color: 'var(--s1)', pts: serie(M.ipc, '2019-01') },
+               { name: 'Zona euro (IPCH, Eurostat)', short: 'Zona euro', color: 'var(--s2)', pts: serie(M.ea, '2019-01') }] }))}
+    <p class="muted">Font: INE (IPC, calculat a partir de l'índex) i Eurostat (IPCH de la zona euro). Són dos índexs una mica diferents: l'IPCH és el que serveix per comparar països.</p>
+  </div>`;
+}
+
 // Preu de l'energia: d'aquí venen la majoria de xocs d'inflació (FMI, mitjana mensual)
 function energiaHTML() {
   const E = D.energia; if (!E?.brent) return '';
@@ -1245,6 +1264,7 @@ function renderInflacio() {
       <p class="muted">Calculat amb la inflació mitjana anual de l'FMI. Els anys a partir del ${Y} són previsió.</p>
     </div>
   </div>
+  ${inflMensualHTML()}
   ${energiaHTML()}
   <div class="callout">⚠️ El ${Y} la crisi de l'estret d'Ormuz ha tornat a encarir el petroli. Les previsions de l'FMI que es veuen aquí encara no recullen el rebrot de l'estiu. <a href="#inici">Més informació →</a></div>
   <div class="card">
